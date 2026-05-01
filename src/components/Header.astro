@@ -56,6 +56,23 @@ const hasEducation = siteConfig.education && siteConfig.education.length > 0;
           </li>
         )
       }
+      <li class="relative group">
+  <button
+    class="flex items-center gap-1 text-gray-700 hover:text-black transition-colors font-medium"
+  >
+    Live Projects
+    <span class="text-xs">▾</span>
+  </button>
+
+  <div class="absolute left-0 top-full hidden min-w-[160px] rounded-xl border border-zinc-200 bg-white shadow-lg group-hover:block">
+    <a
+      href="/savvy"
+      class="block px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-black rounded-xl"
+    >
+      Savvy
+    </a>
+  </div>
+</li>
     </ul>
   </nav>
 </header>
