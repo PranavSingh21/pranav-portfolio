@@ -269,6 +269,23 @@ import { siteConfig } from "../config";
             </>
           </svg>
         </a>
+        <div class="relative group">
+         <button
+           class="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm font-medium text-emerald-600 hover:bg-emerald-400/20 transition-colors"
+          >
+          Live Projects
+            <span class="text-xs">▴</span>
+         </button>
+
+         <div class="absolute bottom-full left-0 hidden min-w-[160px] rounded-xl border border-zinc-200 bg-white shadow-lg group-hover:block">
+           <a
+            href="/savvy"
+            class="block px-4 py-3 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-black rounded-xl"
+           >
+           Savvy
+         </a>
+  </div>
+</div>
       )
     }
   </div>
