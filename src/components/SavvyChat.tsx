@@ -32,7 +32,7 @@ const SUMMARY = {
 function BotMessage({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
-    <div className="flex items-end gap-2.5 max-w-[85%]">
+    <div className="flex items-end gap-2.5 max-w-[85%] lg:max-w-[72%]">
       <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 mb-1">
         <Wallet className="w-3.5 h-3.5 text-emerald-400" />
       </div>
@@ -54,7 +54,7 @@ function BotMessage({ text }: { text: string }) {
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="bg-emerald-600 rounded-2xl rounded-br-md px-4 py-3 text-[15px] leading-relaxed text-white max-w-[85%]">
+      <div className="bg-emerald-600 rounded-2xl rounded-br-md px-4 py-3 text-[15px] leading-relaxed text-white max-w-[85%] lg:max-w-[70%]">
         {text}
       </div>
     </div>
@@ -352,12 +352,13 @@ if (parsed.type === "profile_update") {
   }
 
   return (
-    <div className="h-screen flex bg-zinc-950 text-white overflow-hidden">
+    <div className="h-[100dvh] w-full bg-zinc-950 text-white overflow-hidden">
+      <div className="h-full w-full max-w-7xl mx-auto flex">
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="shrink-0 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
+          <div className="w-full px-4 sm:px-6 py-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
               <Wallet className="w-4.5 h-4.5 text-emerald-400" />
             </div>
@@ -372,7 +373,7 @@ if (parsed.type === "profile_update") {
 
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+          <div className="w-full px-4 sm:px-6 py-6 space-y-4">
             {messages.map((msg) =>
               msg.sender === 'bot' ? (
                 <BotMessage key={msg.id} text={msg.text} />
@@ -386,7 +387,7 @@ if (parsed.type === "profile_update") {
 
         {/* Quick actions + input */}
         <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-3 pb-2">
+          <div className="w-full px-4 sm:px-6 pt-3 pb-2">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
               {QUICK_ACTIONS.map((action) => (
                 <button
@@ -399,7 +400,7 @@ if (parsed.type === "profile_update") {
               ))}
             </div>
           </div>
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-4">
+          <div className="w-full px-4 sm:px-6 pb-4">
             <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2.5 focus-within:border-zinc-600 transition-colors">
               <input
                 type="text"
@@ -428,6 +429,7 @@ if (parsed.type === "profile_update") {
 
       {/* Summary card - desktop only */}
       <SummaryCard profileMemory={profileMemory} spendMemory={spendMemory} />
+    </div>
     </div>
   );
 }
