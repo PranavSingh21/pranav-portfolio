@@ -367,10 +367,10 @@ if (parsed.type === "profile_update") {
   }
 
   return (
-    <div className="h-[100dvh] w-full savvy-shell overflow-hidden">
+    <div className="h-[100dvh] w-full savvy-shell overflow-x-hidden overflow-y-hidden">
       <div className="h-full w-full max-w-7xl mx-auto flex">
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0 border-l savvy-border">
+      <div className="flex-1 flex flex-col min-w-0 w-0 border-l savvy-border overflow-x-hidden">
         {/* Header */}
         <header className="shrink-0 border-b savvy-border savvy-header backdrop-blur-md">
             <div className="w-full px-4 sm:px-6 py-4 flex items-center gap-3">
@@ -423,7 +423,7 @@ if (parsed.type === "profile_update") {
             </div>
           </div>
           <div className="w-full px-4 sm:px-6 pb-4">
-            <div className="flex items-center gap-2 bg-slate-900 border savvy-border rounded-2xl px-4 py-2.5 focus-within:border-zinc-600 transition-colors">
+            <div className="flex items-center gap-2 min-w-0 overflow-hidden bg-slate-900 border savvy-border rounded-2xl px-4 py-2.5 focus-within:border-zinc-600 transition-colors">
               <input
                 type="text"
                 value={input}
@@ -435,7 +435,7 @@ if (parsed.type === "profile_update") {
                   }
                 }}
                 placeholder="Ask about your money..."
-                className="flex-1 bg-transparent text-sm savvy-text placeholder-zinc-600 outline-none"
+                className="flex-1 min-w-0 bg-transparent text-sm savvy-text placeholder-zinc-600 outline-none"
               />
               <button
                 onClick={() => handleSend()}
