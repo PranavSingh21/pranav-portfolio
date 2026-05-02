@@ -409,8 +409,8 @@ if (parsed.type === "profile_update") {
 
         {/* Quick actions + input */}
         <div className="shrink-0 border-t savvy-border savvy-surface-soft backdrop-blur-md">
-          <div className="w-full px-4 sm:px-6 pt-3 pb-2">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <div className="w-full px-4 sm:px-6 pt-3 pb-2 overflow-hidden">
+            <div className="flex w-full min-w-0 gap-2 overflow-x-auto pb-2 scrollbar-none">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action}
