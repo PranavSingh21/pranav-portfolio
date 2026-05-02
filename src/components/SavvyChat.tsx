@@ -61,7 +61,15 @@ function UserMessage({ text }: { text: string }) {
   );
 }
 
-function SummaryCard({ profileMemory, spendMemory }: { profileMemory: any; spendMemory: any[] }) {
+function SummaryCard({
+  profileMemory,
+  spendMemory,
+  mobile = false,
+}: {
+  profileMemory: any;
+  spendMemory: any[];
+  mobile?: boolean;
+}) {
 const totalSpend = spendMemory.reduce((sum, item) => sum + item.amount, 0);
 
 const categoryTotals = spendMemory.reduce((acc, item) => {
@@ -94,7 +102,13 @@ const items = [
 ];
 
   return (
-    <div className="hidden lg:flex flex-col w-72 shrink-0 border-l savvy-border bg-slate-950/50">
+    <div
+  className={`flex flex-col ${
+    mobile
+      ? "w-full"
+      : "hidden lg:flex w-72 shrink-0 border-l savvy-border savvy-surface-soft"
+  }`}
+>
       <div className="px-5 pt-6 pb-4">
         <h2 className="text-sm font-semibold savvy-muted tracking-wide">Snapshot</h2>
       </div>
@@ -136,6 +150,7 @@ export default function Savvy() {
 });
 
 const [spendMemory, setSpendMemory] = useState<any[]>([]);
+const [showSnapshot, setShowSnapshot] = useState(false);
 
 useEffect(() => {
   chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -385,6 +400,12 @@ if (parsed.type === "profile_update") {
             <div ref={chatEndRef} />
           </div>
         </div>
+        <button
+         onClick={() => setShowSnapshot(true)}
+         className="lg:hidden fixed bottom-24 right-4 z-30 savvy-accent rounded-full px-4 py-2 text-sm font-medium shadow-lg"
+        >
+         Snapshot
+        </button>
 
         {/* Quick actions + input */}
         <div className="shrink-0 border-t savvy-border savvy-surface-soft backdrop-blur-md">
@@ -429,6 +450,17 @@ if (parsed.type === "profile_update") {
       </div>
 
       {/* Summary card - desktop only */}
+      {showSnapshot && (
+       <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setShowSnapshot(false)}>
+        <div
+         className="absolute bottom-0 left-0 right-0 rounded-t-3xl savvy-surface p-4 max-h-[75vh] overflow-y-auto"
+         onClick={(e) => e.stopPropagation()}
+        >
+        <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-4" />
+        <SummaryCard profileMemory={profileMemory} spendMemory={spendMemory} mobile />
+        </div>
+      </div>
+      )}
       <SummaryCard profileMemory={profileMemory} spendMemory={spendMemory} />
     </div>
     </div>
