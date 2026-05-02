@@ -110,7 +110,7 @@ const items = [
   }`}
 >
       <div className="px-5 pt-6 pb-4">
-        <h2 className="text-sm font-semibold savvy-muted tracking-wide">Snapshot</h2>
+        <h2 className="text-sm font-semibold savvy-muted tracking-wide">Summary</h2>
       </div>
       <div className="flex-1 px-5 space-y-1">
         {items.map(({ label, value, icon: Icon, color }) => (
@@ -402,9 +402,9 @@ if (parsed.type === "profile_update") {
         </div>
         <button
          onClick={() => setShowSnapshot(true)}
-         className="lg:hidden fixed bottom-24 right-4 z-30 savvy-accent rounded-full px-4 py-2 text-sm font-medium shadow-lg"
+         className="lg:hidden fixed bottom-36 right-4 z-30 savvy-surface border savvy-border rounded-full px-3.5 py-2 text-xs font-medium savvy-text shadow-lg"
         >
-         Snapshot
+         Summary
         </button>
 
         {/* Quick actions + input */}
