@@ -33,13 +33,13 @@ function BotMessage({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <div className="flex items-end gap-2.5 max-w-[85%] lg:max-w-[72%]">
-      <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 mb-1">
+      <div className="w-7 h-7 rounded-lg savvy-accent border border-emerald-500/30 flex items-center justify-center shrink-0 mb-1">
         <Wallet className="w-3.5 h-3.5 text-emerald-400" />
       </div>
-      <div className="bg-zinc-800/80 border border-zinc-700/50 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed text-zinc-200">
+      <div className="savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed text-zinc-200">
         {parts.map((part, i) =>
           part.startsWith('**') && part.endsWith('**') ? (
-            <span key={i} className="font-semibold text-white">
+            <span key={i} className="font-semibold savvy-text">
               {part.slice(2, -2)}
             </span>
           ) : (
@@ -54,7 +54,7 @@ function BotMessage({ text }: { text: string }) {
 function UserMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="bg-emerald-600 rounded-2xl rounded-br-md px-4 py-3 text-[15px] leading-relaxed text-white max-w-[85%] lg:max-w-[70%]">
+      <div className="savvy-accent rounded-2xl rounded-br-md px-4 py-3 text-[15px] leading-relaxed max-w-[85%] lg:max-w-[70%]">
         {text}
       </div>
     </div>
@@ -89,14 +89,14 @@ const items = [
     label: `${category} total`,
     value: `₹${amount}`,
     icon: Tag,
-    color: 'text-zinc-400',
+    color: 'savvy-muted',
   })),
 ];
 
   return (
-    <div className="hidden lg:flex flex-col w-72 shrink-0 border-l border-zinc-800 bg-zinc-950/50">
+    <div className="hidden lg:flex flex-col w-72 shrink-0 border-l savvy-border bg-slate-950/50">
       <div className="px-5 pt-6 pb-4">
-        <h2 className="text-sm font-semibold text-zinc-300 tracking-wide">Snapshot</h2>
+        <h2 className="text-sm font-semibold savvy-muted tracking-wide">Snapshot</h2>
       </div>
       <div className="flex-1 px-5 space-y-1">
         {items.map(({ label, value, icon: Icon, color }) => (
@@ -108,14 +108,14 @@ const items = [
               <Icon className={`w-4 h-4 ${color}`} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-zinc-500 leading-none mb-1">{label}</p>
-              <p className="text-sm font-semibold text-zinc-100">{value}</p>
+              <p className="text-xs savvy-muted leading-none mb-1">{label}</p>
+              <p className="text-sm font-semibold savvy-text">{value}</p>
             </div>
           </div>
         ))}
       </div>
-      <div className="px-5 py-4 border-t border-zinc-800">
-        <p className="text-[11px] text-zinc-600 text-center">Updated just now</p>
+      <div className="px-5 py-4 border-t savvy-border">
+        <p className="text-[11px] savvy-muted text-center">Updated just now</p>
       </div>
     </div>
   );
@@ -200,7 +200,7 @@ useEffect(() => {
   return { type: "question", text };
 }
 
-  function getBotReply(text: string, spends = spendMemory) {
+function getBotReply(text: string, spends = spendMemory) {
     
   const lower = text.toLowerCase();
   if (lower.includes("food")) {
@@ -352,23 +352,24 @@ if (parsed.type === "profile_update") {
   }
 
   return (
-    <div className="h-[100dvh] w-full bg-zinc-950 text-white overflow-hidden">
+    <div className="h-[100dvh] w-full savvy-shell overflow-hidden">
       <div className="h-full w-full max-w-7xl mx-auto flex">
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 border-l savvy-border">
         {/* Header */}
-        <header className="shrink-0 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
-          <div className="w-full px-4 sm:px-6 py-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center">
+        <header className="shrink-0 border-b savvy-border savvy-header backdrop-blur-md">
+            <div className="w-full px-4 sm:px-6 py-4 flex items-center gap-3">
+             <div className="w-9 h-9 rounded-xl savvy-accent-soft flex items-center justify-center">
               <Wallet className="w-4.5 h-4.5 text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-white leading-none">
+             </div>
+
+             <div>
+               <h1 className="text-lg font-bold tracking-tight savvy-text leading-none">
                 Savvy
-              </h1>
-              <p className="text-xs text-zinc-500 mt-0.5">Personal money assistant</p>
+               </h1>
+             <p className="text-xs savvy-muted mt-0.5">Personal money assistant</p>
+             </div>
             </div>
-          </div>
         </header>
 
         {/* Chat messages */}
@@ -386,14 +387,14 @@ if (parsed.type === "profile_update") {
         </div>
 
         {/* Quick actions + input */}
-        <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
+        <div className="shrink-0 border-t savvy-border savvy-surface-soft backdrop-blur-md">
           <div className="w-full px-4 sm:px-6 pt-3 pb-2">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action}
                   onClick={() => handleSend(action)}
-                  className="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium text-zinc-300 bg-zinc-800/80 border border-zinc-700/60 hover:bg-zinc-700/80 hover:border-zinc-600/60 hover:text-white transition-all duration-150 cursor-pointer"
+                  className="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium savvy-muted bg-zinc-800/80 border border-zinc-700/60 hover:bg-zinc-700/80 hover:border-zinc-600/60 hover:savvy-text transition-all duration-150 cursor-pointer"
                 >
                   {action}
                 </button>
@@ -401,7 +402,7 @@ if (parsed.type === "profile_update") {
             </div>
           </div>
           <div className="w-full px-4 sm:px-6 pb-4">
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-2.5 focus-within:border-zinc-600 transition-colors">
+            <div className="flex items-center gap-2 bg-slate-900 border savvy-border rounded-2xl px-4 py-2.5 focus-within:border-zinc-600 transition-colors">
               <input
                 type="text"
                 value={input}
@@ -413,12 +414,12 @@ if (parsed.type === "profile_update") {
                   }
                 }}
                 placeholder="Ask about your money..."
-                className="flex-1 bg-transparent text-sm text-zinc-100 placeholder-zinc-600 outline-none"
+                className="flex-1 bg-transparent text-sm savvy-text placeholder-zinc-600 outline-none"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim()}
-                className="w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-950 flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-xl savvy-accent hover:bg-emerald-400 disabled:bg-zinc-800 disabled:savvy-muted text-zinc-950 flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>

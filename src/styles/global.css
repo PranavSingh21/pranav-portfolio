@@ -1,7 +1,82 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+:root {
+  --savvy-header: #111c30;
+  --savvy-bg: #0f172a;
+  --savvy-surface: #1e293b;
+  --savvy-surface-soft: #111827;
+  --savvy-border: #334155;
+  --savvy-text: #f8fafc;
+  --savvy-muted: #94a3b8;
+  --savvy-accent: #059669;
+  --savvy-accent-hover: #047857;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   color: #0f172a;
+}
+
+.savvy-header {
+  background: var(--savvy-header);
+}
+
+.savvy-shell {
+  background: var(--savvy-bg);
+  color: var(--savvy-text);
+}
+
+.savvy-surface {
+  background: var(--savvy-surface);
+}
+
+.savvy-surface-soft {
+  background: var(--savvy-surface-soft);
+}
+
+.savvy-border {
+  border-color: var(--savvy-border);
+}
+
+.savvy-text {
+  color: var(--savvy-text);
+}
+
+.savvy-muted {
+  color: var(--savvy-muted);
+}
+
+.savvy-accent {
+  background: var(--savvy-accent);
+  color: white;
+}
+
+.savvy-accent:hover {
+  background: var(--savvy-accent-hover);
+}
+/* Subtle dark scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.28);
+}
+.savvy-accent-soft {
+  background: rgba(5, 150, 105, 0.12);
+  border: 1px solid rgba(5, 150, 105, 0.2);
 }
