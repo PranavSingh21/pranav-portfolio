@@ -31,12 +31,14 @@ const SUMMARY = {
 
 function BotMessage({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
   return (
-    <div className="flex items-end gap-2.5 max-w-[85%] lg:max-w-[72%]">
+    <div className="flex items-end gap-2.5 min-w-0 max-w-full lg:max-w-[72%]">
       <div className="w-7 h-7 rounded-lg savvy-accent border border-emerald-500/30 flex items-center justify-center shrink-0 mb-1">
         <Wallet className="w-3.5 h-3.5 text-emerald-400" />
       </div>
-      <div className="savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed text-zinc-200">
+
+      <div className="min-w-0 max-w-[calc(100%-2.5rem)] savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed break-words">
         {parts.map((part, i) =>
           part.startsWith('**') && part.endsWith('**') ? (
             <span key={i} className="font-semibold savvy-text">
@@ -388,8 +390,8 @@ if (parsed.type === "profile_update") {
         </header>
 
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="w-full px-4 sm:px-6 py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="w-full min-w-0 px-4 sm:px-6 py-6 space-y-4 overflow-x-hidden">
             {messages.map((msg) =>
               msg.sender === 'bot' ? (
                 <BotMessage key={msg.id} text={msg.text} />
