@@ -8,10 +8,11 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
-  'Spent this week',
-  'Runway',
-  'Food this month',
-  'Can I spend 2k?',
+  "Spending breakdown",
+  "This month spend",
+  "Safe to spend",
+  "Groceries total",
+  "Transport total",
 ];
 
 const INITIAL_MESSAGES: Message[] = [
@@ -34,8 +35,8 @@ function BotMessage({ text }: { text: string }) {
 
   return (
     <div className="flex items-end gap-2.5 min-w-0 max-w-full lg:max-w-[72%]">
-      <div className="w-7 h-7 rounded-lg savvy-accent border border-emerald-500/30 flex items-center justify-center shrink-0 mb-1">
-        <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+      <div className="w-7 h-7 rounded-lg savvy-accent flex items-center justify-center shrink-0 mb-1">
+         <Sparkles className="w-3.5 h-3.5 text-white" />
       </div>
 
       <div className="min-w-0 max-w-[calc(100%-2.5rem)] savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed break-words">
@@ -151,6 +152,12 @@ export default function Savvy() {
   savings: null as number | null,
 });
 
+const [pendingEntry, setPendingEntry] = useState<{
+  merchant: string;
+  amount?: number;
+  awaiting: "amount" | "category";
+} | null>(null);
+
 const [spendMemory, setSpendMemory] = useState<any[]>([]);
 const [showSnapshot, setShowSnapshot] = useState(false);
 
@@ -180,98 +187,109 @@ useEffect(() => {
   localStorage.setItem("savvy_messages", JSON.stringify(messages));
 }, [messages]);
 
-  function interpretMessage(text: string) {
-  const lower = text.toLowerCase();
-
-  if (lower.includes("salary")) {
-    const amount = Number(text.match(/\d+/)?.[0]);
-    return { type: "profile_update", field: "salary", value: amount };
-  }
-
-  if (lower.includes("rent")) {
-    const amount = Number(text.match(/\d+/)?.[0]);
-    return { type: "profile_update", field: "rent", value: amount };
-  }
-  if (lower.includes("savings")) {
-  const amount = Number(text.match(/-?\d+/)?.[0]);
-  return { type: "profile_update", field: "savings", value: amount };
-}
-
-  const txMatch = text.match(/([a-zA-Z]+)\s+(\d+)/);
-  if (txMatch) {
-    const merchant = txMatch[1];
-    const amount = Number(txMatch[2]);
-
-    let category = "Misc";
-    if (["swiggy", "zomato","food"].includes(merchant.toLowerCase())) category = "Food";
-    if (["uber", "ola", "rapido"].includes(merchant.toLowerCase())) category = "Transport";
-
-    return {
-      type: "transaction",
-      merchant,
-      amount,
-      category,
-    };
-  }
-
-  return { type: "question", text };
-}
 
 function getBotReply(text: string, spends = spendMemory) {
     
   const lower = text.toLowerCase();
-  if (lower.includes("food")) {
+
+if (lower === "this month spend") {
+  const total = spends.reduce((sum, item) => sum + item.amount, 0);
+  return `You’ve spent ₹${total} this month.`;
+}
+
+if (lower === "transport total") {
   const total = spends
-    .filter((item) => item.category === "Food")
+    .filter((item) => item.category === "Transport")
     .reduce((sum, item) => sum + item.amount, 0);
 
-  return `You’ve spent ₹${total} on Food.`;
+  return `You’ve spent ₹${total} on Transport this month.`;
 }
 
- if (lower === "spent this week") {
-  const total = spends.reduce((sum, item) => sum + item.amount, 0);
-  return `You’ve spent ₹${total} this week.`;
+if (lower === "groceries total") {
+  const total = spends
+    .filter((item) => item.category === "Groceries")
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  return `You’ve spent ₹${total} on Groceries this month.`;
 }
 
-  if (lower === "runway") {
-    return "At your current pace, you have 18 safe spending days left this month.";
-  }
+if (lower === "safe to spend") {
+  return "You’re within a safe spending range this month.";
+}
 
-  if (lower === "food this month") {
-    return "You’ve spent ₹8,420 on food this month across 26 orders.";
-  }
+if (lower === "spending breakdown") {
+  const totals = spends.reduce((acc: Record<string, number>, item) => {
+    acc[item.category] = (acc[item.category] || 0) + item.amount;
+    return acc;
+  }, {});
 
-  if (lower === "can i spend 2k?" || lower === "can i spend 2k") {
-    return "Yes — safe, but try to stay under ₹1.8k before rent hits.";
-  }
+  const summary = Object.entries(totals)
+    .map(([key, value]) => `${key}: ₹${value}`)
+    .join(" • ");
 
-  const match = text.match(/([a-zA-Z]+)\s+(\d+)/);
+  return summary
+    ? `This month: ${summary}`
+    : "No spending logged yet this month.";
+}
 
-  if (match) {
-    const merchant = match[1].toLowerCase();
-    const amount = Number(match[2]);
-
-    let category = "Misc";
-    if (["swiggy", "zomato"].includes(merchant)) category = "Food";
-    if (["uber", "ola", "rapido"].includes(merchant)) category = "Transport";
-    if (merchant === "rent") category = "Rent";
-
-    return `Logged ₹${amount} under ${category}.`;
-  }
-
-  return "Try logging something like ‘Swiggy 280’ or ask ‘Spent this week’.";
+return "Try logging something like ‘Swiggy 280’ or ask ‘Spending breakdown’.";
 }
 
   function handleSend(text?: string) {
     const trimmed = (text ?? input).trim();
     if (!trimmed) return;
 
+    const categoryReply = trimmed.toLowerCase();
+
+if (
+  pendingEntry &&
+  ["eating out", "groceries", "transport", "rent", "bills", "household", "health", "shopping", "entertainment", "personal", "general"].includes(categoryReply)
+) {
+  const category =
+    categoryReply === "eating out"
+      ? "Eating Out"
+      : categoryReply.charAt(0).toUpperCase() + categoryReply.slice(1);
+
+  setSpendMemory((prev) => [
+    ...prev,
+    {
+      merchant: pendingEntry.merchant,
+      amount: pendingEntry.amount,
+      category,
+      date: new Date().toISOString(),
+    },
+  ]);
+
+  setMessages((prev) => [
+    ...prev,
+    { id: nextId.current++, sender: "user", text: trimmed },
+    {
+      id: nextId.current++,
+      sender: "bot",
+      text: `Logged ₹${pendingEntry.amount} for ${pendingEntry.merchant} under ${category}.`,
+    },
+  ]);
+
+  setPendingEntry(null);
+  setInput("");
+  return;
+}
+
     const userMsg: Message = { id: nextId.current++, sender: 'user', text: trimmed };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
 
-setTimeout(() => {
-  const parsed = interpretMessage(trimmed);
+setTimeout(async () => {
+  const res = await fetch("/api/parse", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ message: trimmed }),
+});
+
+const parsed = await res.json();
+
   let reply = getBotReply(trimmed, spendMemory);
 
   if (trimmed.toLowerCase().startsWith("reset ")) {
@@ -295,6 +313,16 @@ setTimeout(() => {
 
     reply = `Cleared ${target} transactions.`;
   }
+
+  if (
+  parsed.intent === "unknown" &&
+  parsed.reply.toLowerCase().includes("under eating out")
+) {
+  setPendingEntry({
+    merchant: parsed.merchant,
+    amount: parsed.amount,
+  });
+}
 
   const botMsg: Message = {
     id: nextId.current++,
@@ -329,34 +357,113 @@ setTimeout(() => {
 
   return;
 }
-if (parsed.type === "profile_update") {
-  setProfileMemory((prev) => ({
+if (parsed.intent === "expense_add") {
+  setSpendMemory((prev) => [
     ...prev,
-    [parsed.field]:
-      parsed.field === "savings"
-        ? (prev.savings || 0) + parsed.value
-        : parsed.value,
-  }));
+    {
+      merchant: parsed.merchant,
+      amount: parsed.amount,
+      category: parsed.category,
+      date: new Date().toISOString(),
+    },
+  ]);
 
-  reply =
-    parsed.field === "savings"
-      ? `Updated savings to ₹${(profileMemory.savings || 0) + parsed.value}.`
-      : `Saved your ${parsed.field} as ₹${parsed.value}.`;
+  reply = `Logged ₹${parsed.amount} for ${parsed.merchant} under ${parsed.category}.`;
 }
 
-  if (parsed.type === "transaction") {
-    setSpendMemory((prev) => [
-      ...prev,
-      {
-        merchant: parsed.merchant,
-        amount: parsed.amount,
-        category: parsed.category,
-        date: new Date().toISOString(),
-      },
-    ]);
+if (parsed.intent === "income_add") {
+  setProfileMemory((prev: any) => ({
+    ...prev,
+    salary: parsed.amount,
+    currentBalance: (prev.currentBalance || 0) + parsed.amount,
+  }));
+}
 
-    reply = `Logged ₹${parsed.amount} under ${parsed.category}.`;
+if (parsed.intent === "savings_add") {
+  setProfileMemory((prev: any) => ({
+    ...prev,
+    savings: (prev.savings || 0) + parsed.amount,
+    currentBalance: (prev.currentBalance || 0) - parsed.amount,
+  }));
+}
+
+if (parsed.intent === "expense_query") {
+  const lower = trimmed.toLowerCase();
+
+  let targetCategory = parsed.category;
+  let targetMerchant = parsed.merchant?.toLowerCase();
+
+  if (!targetMerchant) {
+    if (lower.includes("swiggy")) targetMerchant = "swiggy";
+    else if (lower.includes("zomato")) targetMerchant = "zomato";
+    else if (lower.includes("ola")) targetMerchant = "ola";
+    else if (lower.includes("uber")) targetMerchant = "uber";
+    else if (lower.includes("rapido")) targetMerchant = "rapido";
+    else if (lower.includes("transport") || lower.includes("cab")) targetCategory = "Transport";
   }
+
+  if (
+    !targetCategory ||
+    targetCategory === "General" ||
+    targetCategory === "unknown"
+  ) {
+    if (lower.includes("food")) targetCategory = "Food";
+    else if (lower.includes("transport") || lower.includes("cab")) targetCategory = "Transport";
+    else if (lower.includes("rent")) targetCategory = "Rent";
+    else if (lower.includes("shopping")) targetCategory = "Shopping";
+    else if (lower.includes("bills")) targetCategory = "Bills";
+    else if (lower.includes("entertainment")) targetCategory = "Entertainment";
+    else targetCategory = "General";
+  }
+
+  const filtered = spendMemory.filter((item) => {
+    if (targetMerchant) {
+      return item.merchant.toLowerCase().includes(targetMerchant);
+    }
+
+    if (targetCategory !== "General") {
+      return item.category.toLowerCase() === targetCategory.toLowerCase();
+    }
+
+    return true;
+  });
+
+  const total = filtered.reduce((sum, item) => sum + item.amount, 0);
+
+  if (targetMerchant) {
+    reply = `You've spent ₹${total} on ${targetMerchant} this month.`;
+  } else if (targetCategory !== "General") {
+    reply = `You've spent ₹${total} on ${targetCategory} this month.`;
+  } else {
+    reply = `You've spent ₹${total} this month.`;
+  }
+}
+if (parsed.intent === "breakdown_query") {
+  const totals = spendMemory.reduce((acc: Record<string, number>, item) => {
+    acc[item.category] = (acc[item.category] || 0) + item.amount;
+    return acc;
+  }, {});
+
+  const summary = Object.entries(totals)
+    .map(([key, value]) => `${key}: ₹${value}`)
+    .join(" • ");
+
+  reply = summary
+    ? `This month: ${summary}`
+    : "No spending logged yet this month.";
+}
+
+if (parsed.intent === "safe_to_spend") {
+  const spent = spendMemory.reduce((sum, item) => sum + item.amount, 0);
+  const balance = profileMemory.currentBalance || 0;
+  const safe = Math.max(balance - spent, 0);
+
+  reply = `You can safely spend ₹${safe} right now.`;
+}
+
+if (!["expense_query", "breakdown_query", "safe_to_spend"].includes(parsed.intent)) {
+  reply = parsed.reply;
+}
 
   const botMsg: Message = {
     id: nextId.current++,
@@ -446,8 +553,7 @@ if (parsed.type === "profile_update") {
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim()}
-                className="w-8 h-8 rounded-xl savvy-accent hover:bg-emerald-400 disabled:bg-zinc-800 disabled:savvy-muted text-zinc-950 flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed"
-              >
+                className="w-8 h-8 rounded-xl savvy-accent disabled:bg-zinc-800 disabled:savvy-muted flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed"              >
                 <Send className="w-3.5 h-3.5" />
               </button>
             </div>
