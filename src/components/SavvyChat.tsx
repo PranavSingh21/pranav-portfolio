@@ -437,7 +437,7 @@ if (parsed.type === "profile_update") {
                   }
                 }}
                 placeholder="Ask about your money..."
-                className="flex-1 min-w-0 bg-transparent text-sm savvy-text placeholder-zinc-600 outline-none"
+                className="flex-1 min-w-0 bg-transparent text-base sm:text-sm savvy-text placeholder-zinc-600 outline-none"
               />
               <button
                 onClick={() => handleSend()}
