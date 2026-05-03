@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^5.0.4",
+    "@astrojs/vercel": "^8.2.11",
     "@tailwindcss/vite": "^4.1.11",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
