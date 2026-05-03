@@ -1,34 +1,33 @@
-🚀 **Pranav Anand Singh – Product Portfolio**
+# 🚀 Pranav Anand Singh – Product Portfolio
 
-👋 About This Repository
+## 👋 About This Repository
 
-This repository contains the source code for my personal portfolio website.
+This repository contains the source code for my personal portfolio website and live product experiments.
 
-The website showcases:
+It showcases:
 
-Product Ownership experience in FinTech systems
+- Product Ownership experience in FinTech systems
+- High-availability validation frameworks
+- AI-powered product experiments (FlowPilot, ScreenSage, Savvy)
+- Systems thinking, execution, and product strategy
+- Interactive live product demos built as portfolio artifacts
 
-High-availability validation frameworks
+The goal of this repository is not just to present work, but to demonstrate how I think, build, and ship products end-to-end.
 
-AI-powered product experiments (FlowPilot, ScreenSage)
-
-Systems thinking & structured product execution
-
-It is built using a customized version of the vCard Personal Portfolio template.
-
-🧠**About Me**
+## 🧠 About Me
 
 I am a Product Owner specializing in:
 
-FinTech platform systems
+- FinTech platform systems
+- Validation architecture & workflow automation
+- API-driven product modules
+- AI-powered productivity and consumer tools
 
-Validation architecture & workflow automation
+I focus on building scalable, reliable systems while exploring product-led, AI-first experiences through live product experiments.
 
-API-driven product modules
-
-AI-powered productivity tools
-
-Currently focused on building scalable, reliable systems and growing toward long-term product leadership.
+This portfolio is both:
+- a showcase of shipped work
+- and a sandbox for building and testing product ideas in public
 
 **📍 Bangalore, India
 📧 021pranavsingh@gmail.com**
