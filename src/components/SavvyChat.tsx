@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wallet, TrendingDown, Tag, ShieldCheck, Send, PiggyBank } from "lucide-react";
+import { Wallet, TrendingDown, Tag, ShieldCheck, Send, PiggyBank, Sparkles } from "lucide-react";
 
 interface Message {
   id: number;
@@ -35,7 +35,7 @@ function BotMessage({ text }: { text: string }) {
   return (
     <div className="flex items-end gap-2.5 min-w-0 max-w-full lg:max-w-[72%]">
       <div className="w-7 h-7 rounded-lg savvy-accent border border-emerald-500/30 flex items-center justify-center shrink-0 mb-1">
-        <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+        <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
       </div>
 
       <div className="min-w-0 max-w-[calc(100%-2.5rem)] savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed break-words">
@@ -376,15 +376,19 @@ if (parsed.type === "profile_update") {
         {/* Header */}
         <header className="shrink-0 border-b savvy-border savvy-header backdrop-blur-md">
             <div className="w-full px-4 sm:px-6 py-4 flex items-center gap-3">
-             <div className="w-9 h-9 rounded-xl savvy-accent-soft flex items-center justify-center">
-              <Wallet className="w-4.5 h-4.5 text-emerald-400" />
-             </div>
+             <div className="w-9 h-9 flex items-center justify-center overflow-hidden">
+  <img
+    src="/savvy-bot.png"
+    alt="Savvy"
+    className="w-8 h-8 object-contain"
+  />
+</div>
 
              <div>
                <h1 className="text-lg font-bold tracking-tight savvy-text leading-none">
                 Savvy
                </h1>
-             <p className="text-xs savvy-muted mt-0.5">Personal money assistant</p>
+             <p className="text-xs savvy-muted mt-0.5">Track money. Spend smarter.</p>
              </div>
             </div>
         </header>
