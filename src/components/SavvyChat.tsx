@@ -155,7 +155,9 @@ export default function Savvy() {
 const [pendingEntry, setPendingEntry] = useState<{
   merchant: string;
   amount?: number;
-  awaiting: "amount" | "category";
+  category?: string;
+  intent: "expense_add" | "income_add" | "savings_add";
+  awaiting: "amount" | "category" | "confirmation";
 } | null>(null);
 
 const [spendMemory, setSpendMemory] = useState<any[]>([]);
@@ -235,245 +237,282 @@ if (lower === "spending breakdown") {
 return "Try logging something like ‘Swiggy 280’ or ask ‘Spending breakdown’.";
 }
 
-  function handleSend(text?: string) {
-    const trimmed = (text ?? input).trim();
-    if (!trimmed) return;
+function resolvePendingFlow(trimmed: string): boolean {
+  const lower = trimmed.toLowerCase().trim();
 
-    const categoryReply = trimmed.toLowerCase();
+  if (!pendingEntry) return false;
 
-if (
-  pendingEntry &&
-  ["eating out", "groceries", "transport", "rent", "bills", "household", "health", "shopping", "entertainment", "personal", "general"].includes(categoryReply)
-) {
-  const category =
-    categoryReply === "eating out"
-      ? "Eating Out"
-      : categoryReply.charAt(0).toUpperCase() + categoryReply.slice(1);
-
-  setSpendMemory((prev) => [
-    ...prev,
-    {
-      merchant: pendingEntry.merchant,
-      amount: pendingEntry.amount,
-      category,
-      date: new Date().toISOString(),
-    },
-  ]);
-
-  setMessages((prev) => [
-    ...prev,
-    { id: nextId.current++, sender: "user", text: trimmed },
-    {
-      id: nextId.current++,
-      sender: "bot",
-      text: `Logged ₹${pendingEntry.amount} for ${pendingEntry.merchant} under ${category}.`,
-    },
-  ]);
-
-  setPendingEntry(null);
-  setInput("");
-  return;
-}
-
-    const userMsg: Message = { id: nextId.current++, sender: 'user', text: trimmed };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-
-setTimeout(async () => {
-  const res = await fetch("/api/parse", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ message: trimmed }),
-});
-
-const parsed = await res.json();
-
-  let reply = getBotReply(trimmed, spendMemory);
-
-  if (trimmed.toLowerCase().startsWith("reset ")) {
-  const target = trimmed.toLowerCase().replace("reset ", "").trim();
-
-  if (["salary", "rent", "currentbalance", "savingsbuffer"].includes(target)) {
-    setProfileMemory((prev) => ({
+  const pushMessages = (botText: string) => {
+    setMessages((prev) => [
       ...prev,
-      [target === "currentbalance"
-        ? "currentBalance"
-        : target === "savings"
-          ? "savings"
-        : target]: null,
-    }));
-
-    reply = `Cleared ${target} from memory.`;
-  } else {
-    setSpendMemory((prev) =>
-      prev.filter((item) => item.category.toLowerCase() !== target)
-    );
-
-    reply = `Cleared ${target} transactions.`;
-  }
-
-  if (
-  parsed.intent === "unknown" &&
-  parsed.reply.toLowerCase().includes("under eating out")
-) {
-  setPendingEntry({
-    merchant: parsed.merchant,
-    amount: parsed.amount,
-  });
-}
-
-  const botMsg: Message = {
-    id: nextId.current++,
-    sender: "bot",
-    text: reply,
+      { id: nextId.current++, sender: "user", text: trimmed },
+      { id: nextId.current++, sender: "bot", text: botText },
+    ]);
+    setInput("");
   };
 
-  setMessages((prev) => [...prev, botMsg]);
-  return;
-}
+  // -------------------------
+  // CONFIRMATION FLOW
+  // -------------------------
+  if (pendingEntry.awaiting === "confirmation") {
+    if (["yes", "y", "ok", "okay"].includes(lower)) {
+      if (pendingEntry.intent === "savings_add") {
+        setProfileMemory((prev) => ({
+          ...prev,
+          savings: (prev.savings || 0) + (pendingEntry.amount || 0),
+        }));
 
-  if (trimmed.toLowerCase() === "reset") {
-  setProfileMemory({
-    salary: null,
-    rent: null,
-    currentBalance: null,
-    savingsBuffer: null,
-  });
+        pushMessages(
+          `Added ₹${pendingEntry.amount} to savings from ${pendingEntry.merchant}.`
+        );
+      } else if (pendingEntry.intent === "income_add") {
+        setProfileMemory((prev) => ({
+          ...prev,
+          salary: (prev.salary || 0) + (pendingEntry.amount || 0),
+        }));
 
-  setSpendMemory([]);
+        pushMessages(`Logged ₹${pendingEntry.amount} as income.`);
+      } else {
+        setSpendMemory((prev) => [
+          ...prev,
+          {
+            merchant: pendingEntry.merchant,
+            amount: pendingEntry.amount!,
+            category: pendingEntry.category || "General",
+            date: new Date().toISOString(),
+          },
+        ]);
 
-  localStorage.removeItem("savvy_profile");
-  localStorage.removeItem("savvy_spends");
+        pushMessages(
+          `Logged ₹${pendingEntry.amount} for ${pendingEntry.merchant} under ${pendingEntry.category}.`
+        );
+      }
 
-  setMessages([
-    {
-      id: 1,
-      sender: "bot",
-      text: "Savvy has been reset. Start fresh — try ‘Salary 72000’ or ‘Swiggy 280’.",
-    },
-  ]);
-
-  return;
-}
-if (parsed.intent === "expense_add") {
-  setSpendMemory((prev) => [
-    ...prev,
-    {
-      merchant: parsed.merchant,
-      amount: parsed.amount,
-      category: parsed.category,
-      date: new Date().toISOString(),
-    },
-  ]);
-
-  reply = `Logged ₹${parsed.amount} for ${parsed.merchant} under ${parsed.category}.`;
-}
-
-if (parsed.intent === "income_add") {
-  setProfileMemory((prev: any) => ({
-    ...prev,
-    salary: parsed.amount,
-    currentBalance: (prev.currentBalance || 0) + parsed.amount,
-  }));
-}
-
-if (parsed.intent === "savings_add") {
-  setProfileMemory((prev: any) => ({
-    ...prev,
-    savings: (prev.savings || 0) + parsed.amount,
-    currentBalance: (prev.currentBalance || 0) - parsed.amount,
-  }));
-}
-
-if (parsed.intent === "expense_query") {
-  const lower = trimmed.toLowerCase();
-
-  let targetCategory = parsed.category;
-  let targetMerchant = parsed.merchant?.toLowerCase();
-
-  if (!targetMerchant) {
-    if (lower.includes("swiggy")) targetMerchant = "swiggy";
-    else if (lower.includes("zomato")) targetMerchant = "zomato";
-    else if (lower.includes("ola")) targetMerchant = "ola";
-    else if (lower.includes("uber")) targetMerchant = "uber";
-    else if (lower.includes("rapido")) targetMerchant = "rapido";
-    else if (lower.includes("transport") || lower.includes("cab")) targetCategory = "Transport";
-  }
-
-  if (
-    !targetCategory ||
-    targetCategory === "General" ||
-    targetCategory === "unknown"
-  ) {
-    if (lower.includes("food")) targetCategory = "Food";
-    else if (lower.includes("transport") || lower.includes("cab")) targetCategory = "Transport";
-    else if (lower.includes("rent")) targetCategory = "Rent";
-    else if (lower.includes("shopping")) targetCategory = "Shopping";
-    else if (lower.includes("bills")) targetCategory = "Bills";
-    else if (lower.includes("entertainment")) targetCategory = "Entertainment";
-    else targetCategory = "General";
-  }
-
-  const filtered = spendMemory.filter((item) => {
-    if (targetMerchant) {
-      return item.merchant.toLowerCase().includes(targetMerchant);
+      setPendingEntry(null);
+      return true;
     }
 
-    if (targetCategory !== "General") {
-      return item.category.toLowerCase() === targetCategory.toLowerCase();
+    if (["no", "n"].includes(lower)) {
+      pushMessages(`Okay — what category should I use for ${pendingEntry.merchant}?`);
+
+      setPendingEntry((prev) =>
+        prev ? { ...prev, awaiting: "category" } : null
+      );
+
+      return true;
+    }
+  }
+
+  // -------------------------
+  // CATEGORY FLOW
+  // -------------------------
+  const allowedCategories = [
+    "eating out",
+    "groceries",
+    "transport",
+    "rent",
+    "bills",
+    "household",
+    "health",
+    "shopping",
+    "entertainment",
+    "personal",
+    "general",
+    "savings",
+  ];
+
+  if (pendingEntry.awaiting === "category" && allowedCategories.includes(lower)) {
+    const category =
+      lower === "eating out"
+        ? "Eating Out"
+        : lower.charAt(0).toUpperCase() + lower.slice(1);
+
+    if (category === "Savings") {
+      setProfileMemory((prev) => ({
+        ...prev,
+        savings: (prev.savings || 0) + (pendingEntry.amount || 0),
+      }));
+
+      pushMessages(
+        `Added ₹${pendingEntry.amount} to savings from ${pendingEntry.merchant}.`
+      );
+    } else {
+      setSpendMemory((prev) => [
+        ...prev,
+        {
+          merchant: pendingEntry.merchant,
+          amount: pendingEntry.amount!,
+          category,
+          date: new Date().toISOString(),
+        },
+      ]);
+
+      pushMessages(
+        `Logged ₹${pendingEntry.amount} for ${pendingEntry.merchant} under ${category}.`
+      );
     }
 
+    setPendingEntry(null);
     return true;
-  });
-
-  const total = filtered.reduce((sum, item) => sum + item.amount, 0);
-
-  if (targetMerchant) {
-    reply = `You've spent ₹${total} on ${targetMerchant} this month.`;
-  } else if (targetCategory !== "General") {
-    reply = `You've spent ₹${total} on ${targetCategory} this month.`;
-  } else {
-    reply = `You've spent ₹${total} this month.`;
   }
-}
-if (parsed.intent === "breakdown_query") {
-  const totals = spendMemory.reduce((acc: Record<string, number>, item) => {
-    acc[item.category] = (acc[item.category] || 0) + item.amount;
-    return acc;
-  }, {});
 
-  const summary = Object.entries(totals)
-    .map(([key, value]) => `${key}: ₹${value}`)
-    .join(" • ");
-
-  reply = summary
-    ? `This month: ${summary}`
-    : "No spending logged yet this month.";
+  return false;
 }
 
-if (parsed.intent === "safe_to_spend") {
-  const spent = spendMemory.reduce((sum, item) => sum + item.amount, 0);
-  const balance = profileMemory.currentBalance || 0;
-  const safe = Math.max(balance - spent, 0);
+function handleSend(text?: string) {
+  const trimmed = (text ?? input).trim();
+  if (!trimmed) return;
 
-  reply = `You can safely spend ₹${safe} right now.`;
-}
+  // Phase 1: resolve local conversational state first
+  // (yes/no confirmations, category follow-ups, etc.)
+  if (resolvePendingFlow(trimmed)) return;
 
-if (!["expense_query", "breakdown_query", "safe_to_spend"].includes(parsed.intent)) {
-  reply = parsed.reply;
-}
-
-  const botMsg: Message = {
+  // Phase 2: normal user turn
+  const userMsg: Message = {
     id: nextId.current++,
-    sender: 'bot',
-    text: reply,
+    sender: "user",
+    text: trimmed,
   };
 
-  setMessages((prev) => [...prev, botMsg]);
-}, 800);
-  }
+  setMessages((prev) => [...prev, userMsg]);
+  setInput("");
+
+  setTimeout(async () => {
+    const lower = trimmed.toLowerCase();
+
+    const res = await fetch("/api/parse", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: trimmed }),
+    });
+
+    const parsed = await res.json();
+    let reply = getBotReply(trimmed, spendMemory);
+
+    // reset <category>
+    if (lower.startsWith("reset ")) {
+      const target = lower.replace("reset ", "").trim();
+
+      if (["salary", "rent", "currentbalance", "savingsbuffer"].includes(target)) {
+        setProfileMemory((prev) => ({
+          ...prev,
+          [target === "currentbalance"
+            ? "currentBalance"
+            : target === "savingsbuffer"
+            ? "savingsBuffer"
+            : target]: null,
+        }));
+
+        reply = `Cleared ${target} from memory.`;
+      } else {
+        setSpendMemory((prev) =>
+          prev.filter((item) => item.category.toLowerCase() !== target)
+        );
+
+        reply = `Cleared ${target} transactions.`;
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: nextId.current++,
+          sender: "bot",
+          text: reply,
+        },
+      ]);
+      return;
+    }
+
+    // full reset
+    if (lower === "reset") {
+      setProfileMemory({
+        salary: null,
+        rent: null,
+        currentBalance: null,
+        savingsBuffer: null,
+        savings: null,
+      });
+
+      setSpendMemory([]);
+      setPendingEntry(null);
+
+      localStorage.removeItem("savvy_profile");
+      localStorage.removeItem("savvy_spends");
+      localStorage.removeItem("savvy_messages");
+
+      setMessages([
+        {
+          id: 1,
+          sender: "bot",
+          text: "Savvy has been reset. Start fresh — try ‘Salary 120000’ or ‘Swiggy 280’.",
+        },
+      ]);
+
+      nextId.current = 2;
+      return;
+    }
+
+    // profile updates
+    if (parsed.type === "profile_update") {
+      setProfileMemory((prev) => ({
+        ...prev,
+        [parsed.field]:
+          parsed.field === "savings"
+            ? (prev.savings || 0) + parsed.value
+            : parsed.value,
+      }));
+
+      reply =
+        parsed.field === "savings"
+          ? `Updated savings to ₹${(profileMemory.savings || 0) + parsed.value}.`
+          : `Saved your ${parsed.field} as ₹${parsed.value}.`;
+    }
+
+    // direct transaction
+    if (parsed.type === "transaction") {
+      setSpendMemory((prev) => [
+        ...prev,
+        {
+          merchant: parsed.merchant,
+          amount: parsed.amount,
+          category: parsed.category,
+          date: new Date().toISOString(),
+        },
+      ]);
+
+      reply = `Logged ₹${parsed.amount} for ${parsed.merchant} under ${parsed.category}.`;
+    }
+
+    // clarification / confirmation
+    if (parsed.type === "clarification") {
+      setPendingEntry({
+        merchant: parsed.merchant,
+        amount: parsed.amount,
+        category: parsed.category,
+        options: parsed.options || [],
+        awaiting: parsed.category ? "confirmation" : "category",
+      });
+
+      reply = parsed.reply;
+    }
+
+    // fallback
+    if (parsed.type === "unknown") {
+      reply = parsed.reply || "I’m not sure what you mean. Could you provide more details?";
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: nextId.current++,
+        sender: "bot",
+        text: reply,
+      },
+    ]);
+  }, 800);
+}
 
   return (
     <div className="h-[100dvh] w-full savvy-shell overflow-x-hidden overflow-y-hidden">

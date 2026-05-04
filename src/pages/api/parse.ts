@@ -36,19 +36,21 @@ Do not explain anything.
 
 Use this exact schema:
 {
-  "intent": "expense_add | income_add | savings_add | expense_query | breakdown_query | safe_to_spend | unknown",
+  "type": "transaction | profile_update | clarification | query | unknown",
   "amount": number,
   "merchant": string,
   "category": "Eating Out | Groceries | Transport | Rent | Bills | Household | Health | Shopping | Entertainment | Personal | Savings | Salary | General",
-  "direction": "debit | credit | neutral",
+  "field": "salary | savings | rent | currentBalance | null",
+  "value": number,
+  "options": string[],
   "reply": string
 }
 
 Rules:
-- "spent 240 on swiggy" => expense_add
-- "salary credited 70000" => income_add
-- "saved 5000" => savings_add
-- "how much did I spend on food" => expense_query
+- "spent 240 on swiggy" => type = "transaction"
+- "salary credited 95000" => type = "profile_update", field = "salary", value = amount
+- "saved 5000" => type = "profile_update", field = "savings", value = amount
+- "how much did I spend on food" => type = "query"
 
 Category mapping:
 - swiggy, zomato, restaurant, cafe, dineout => Eating Out
@@ -64,18 +66,18 @@ Category mapping:
 
 Rules:
 - infer merchant and category when possible
-- if unknown, set intent = "unknown"
+- if unknown, set type = "unknown"
 - amount must be number
 - merchant must be empty string if none
 - reply should be short, natural, and helpful
 
-- "spending breakdown" => breakdown_query
-- "safe to spend" => safe_to_spend
-- "this month spend" => expense_query
-- "groceries total" => expense_query with category = "Groceries"
-- "transport total" => expense_query with category = "Transport"
+- "spending breakdown" => type = "query"
+- "safe to spend" => type = "query"
+- "this month spend" => type = "query"
+- "groceries total" => type = "query", category = "Groceries"
+- "transport total" => type = "query", category = "Transport"
 
-- For expense_add replies, always mention the assigned category in the reply.
+- For transaction replies, always mention the assigned category in the reply.
 - Example: "Logged ₹200 for chicken masala under Groceries."
 - Example: "Logged ₹500 for Colgate under Personal."
 
@@ -85,6 +87,37 @@ Rules:
 - Example: "Should I log ₹500 under Groceries, Household, or Personal?"
 - If both are unclear, ask for only the missing details needed to log it.
 - Avoid generic replies like "provide more details" when the missing field is obvious.
+
+- If clarification is needed, always return:
+- type = "clarification"
+- include known merchant if available
+- include known amount if available
+- include known category if available
+- include options[] only when the user must choose between valid Savvy categories
+- reply must ask only for the missing field
+
+- If amount is known but category is ambiguous, return:
+  type = "clarification"
+
+- If confirmation is needed, return:
+  type = "clarification"
+
+- clarification responses may include:
+  merchant, amount, category, options[], reply
+
+  Savvy must only use categories from this exact allowed list:
+Eating Out, Groceries, Transport, Rent, Bills, Household, Health, Shopping, Entertainment, Personal, Savings, Salary, General
+
+Do not invent new categories.
+Do not suggest categories outside this list.
+Never suggest labels like Stocks, Mutual Funds, Bonds, EMI, Insurance, Investments, Crypto, Travel, or Food unless they map to one of the allowed categories above.
+
+If the user refers to investments, mutual funds, stocks, SIPs, trading, or stock market:
+- default category = Savings
+- do not ask category clarification unless the user explicitly indicates it is an expense
+- prefer direct confirmation:
+  "Should I add ₹50000 to Savings?"
+
 `,
         },
         {
@@ -94,22 +127,25 @@ Rules:
       ],
     });
 
-    const raw = completion.choices[0]?.message?.content ?? "{}";
+const raw = completion.choices[0]?.message?.content ?? "{}";
+const parsed = JSON.parse(raw);
 
-    return new Response(raw, {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+return new Response(JSON.stringify(parsed), {
+  status: 200,
+  headers: { "Content-Type": "application/json" },
+});
   } catch (error: any) {
   console.error("Parse API error:", error);
     return new Response(
       JSON.stringify({
-        intent: "unknown",
-        amount: 0,
-        merchant: "",
-        category: "General",
-        direction: "neutral",
-        reply: "I couldn't understand that. Try rephrasing it.",
+         type: "unknown",
+  amount: 0,
+  merchant: "",
+  category: "General",
+  field: null,
+  value: 0,
+  options: [],
+  reply: "I couldn't understand that. Try rephrasing it."
       }),
       { status: 200 }
     );
