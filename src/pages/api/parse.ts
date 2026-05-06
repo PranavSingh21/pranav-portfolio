@@ -37,6 +37,7 @@ Do not explain anything.
 Use this exact schema:
 {
   "type": "transaction | profile_update | clarification | query | unknown",
+  "queryType": "monthly_total | breakdown | category_total | safe_to_spend | none",
   "amount": number,
   "merchant": string,
   "category": "Eating Out | Groceries | Transport | Rent | Bills | Household | Health | Shopping | Entertainment | Personal | Savings | Salary | General",
@@ -96,14 +97,6 @@ Rules:
 - include options[] only when the user must choose between valid Savvy categories
 - reply must ask only for the missing field
 
-- If amount is known but category is ambiguous, return:
-  type = "clarification"
-
-- If confirmation is needed, return:
-  type = "clarification"
-
-- clarification responses may include:
-  merchant, amount, category, options[], reply
 
   Savvy must only use categories from this exact allowed list:
 Eating Out, Groceries, Transport, Rent, Bills, Household, Health, Shopping, Entertainment, Personal, Savings, Salary, General
@@ -118,6 +111,81 @@ If the user refers to investments, mutual funds, stocks, SIPs, trading, or stock
 - prefer direct confirmation:
   "Should I add ₹50000 to Savings?"
 
+  If asking a yes/no confirmation question like:
+"Should I log ₹250 under Household?"
+
+You MUST include:
+- type = "clarification"
+- merchant
+- amount
+- category
+
+This is required for conversational confirmation flows.
+
+Query understanding rules:
+
+If the user asks:
+- "total this month"
+- "monthly spend"
+- "how much did I spend"
+- "money spent"
+- "this month total"
+
+Return:
+"type": "query"
+"queryType": "monthly_total"
+
+---
+
+If the user asks:
+- "spending breakdown"
+- "where did my money go"
+- "show categories"
+- "expense breakdown"
+- "category breakdown"
+
+Return:
+"type": "query"
+"queryType": "breakdown"
+
+---
+
+If the user asks:
+- "safe to spend"
+- "can I spend"
+- "how much left"
+- "remaining budget"
+- "available balance"
+
+Return:
+"type": "query"
+"queryType": "safe_to_spend"
+
+---
+
+If the user asks about a category total:
+- "groceries total"
+- food, dining, eating out, lunch, dinner => Eating Out
+- "transport total"
+
+Return:
+"type": "query"
+"queryType": "category_total"
+
+Use semantic understanding.
+Do not rely only on exact phrases.
+
+If the user asks about a specific merchant:
+Examples:
+- "how much on swiggy"
+- "uber spend"
+- "zomato expenses"
+
+Return:
+"type": "query"
+"queryType": "category_total"
+
+Infer the closest matching category and merchant when possible.
 `,
         },
         {
@@ -128,7 +196,23 @@ If the user refers to investments, mutual funds, stocks, SIPs, trading, or stock
     });
 
 const raw = completion.choices[0]?.message?.content ?? "{}";
-const parsed = JSON.parse(raw);
+let parsed;
+
+try {
+  parsed = JSON.parse(raw);
+} catch {
+  parsed = {
+    type: "unknown",
+    queryType: "none",
+    amount: 0,
+    merchant: "",
+    category: "General",
+    field: null,
+    value: 0,
+    options: [],
+    reply: "I couldn't understand that. Try rephrasing it.",
+  };
+}
 
 return new Response(JSON.stringify(parsed), {
   status: 200,
@@ -137,8 +221,9 @@ return new Response(JSON.stringify(parsed), {
   } catch (error: any) {
   console.error("Parse API error:", error);
     return new Response(
-      JSON.stringify({
-         type: "unknown",
+   JSON.stringify({
+  type: "unknown",
+  queryType: "none",
   amount: 0,
   merchant: "",
   category: "General",
@@ -146,7 +231,7 @@ return new Response(JSON.stringify(parsed), {
   value: 0,
   options: [],
   reply: "I couldn't understand that. Try rephrasing it."
-      }),
+}),
       { status: 200 }
     );
   }

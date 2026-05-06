@@ -19,8 +19,7 @@ const INITIAL_MESSAGES: Message[] = [
   {
     id: 1,
     sender: 'bot',
-    text: "Hey! I’m Savvy. Log an expense like ‘Swiggy 280’ or tell me something like ‘Salary 72000’.",
-  },
+text: "Hey! I’m Savvy — your AI money copilot. Log expenses, track spending, and ask where your money went in plain English.\nTry ‘Salary 120000’ or ‘Swiggy 280’.",  },
 ];
 
 const SUMMARY = {
@@ -156,7 +155,7 @@ const [pendingEntry, setPendingEntry] = useState<{
   merchant: string;
   amount?: number;
   category?: string;
-  intent: "expense_add" | "income_add" | "savings_add";
+  options?: string[];
   awaiting: "amount" | "category" | "confirmation";
 } | null>(null);
 
@@ -190,53 +189,9 @@ useEffect(() => {
 }, [messages]);
 
 
-function getBotReply(text: string, spends = spendMemory) {
-    
-  const lower = text.toLowerCase();
-
-if (lower === "this month spend") {
-  const total = spends.reduce((sum, item) => sum + item.amount, 0);
-  return `You’ve spent ₹${total} this month.`;
+function getBotReply() {
+  return "Try logging something like ‘Swiggy 280’ or ask about your spending.";
 }
-
-if (lower === "transport total") {
-  const total = spends
-    .filter((item) => item.category === "Transport")
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  return `You’ve spent ₹${total} on Transport this month.`;
-}
-
-if (lower === "groceries total") {
-  const total = spends
-    .filter((item) => item.category === "Groceries")
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  return `You’ve spent ₹${total} on Groceries this month.`;
-}
-
-if (lower === "safe to spend") {
-  return "You’re within a safe spending range this month.";
-}
-
-if (lower === "spending breakdown") {
-  const totals = spends.reduce((acc: Record<string, number>, item) => {
-    acc[item.category] = (acc[item.category] || 0) + item.amount;
-    return acc;
-  }, {});
-
-  const summary = Object.entries(totals)
-    .map(([key, value]) => `${key}: ₹${value}`)
-    .join(" • ");
-
-  return summary
-    ? `This month: ${summary}`
-    : "No spending logged yet this month.";
-}
-
-return "Try logging something like ‘Swiggy 280’ or ask ‘Spending breakdown’.";
-}
-
 function resolvePendingFlow(trimmed: string): boolean {
   const lower = trimmed.toLowerCase().trim();
 
@@ -446,7 +401,7 @@ function handleSend(text?: string) {
         {
           id: 1,
           sender: "bot",
-          text: "Savvy has been reset. Start fresh — try ‘Salary 120000’ or ‘Swiggy 280’.",
+          text: "Savvy has been reset. Start fresh —Log expenses, track spending, and ask where your money went in plain English. \nTry ‘Salary 120000’ or ‘Swiggy 280’.",
         },
       ]);
 
@@ -492,11 +447,64 @@ function handleSend(text?: string) {
         amount: parsed.amount,
         category: parsed.category,
         options: parsed.options || [],
-        awaiting: parsed.category ? "confirmation" : "category",
+        awaiting:
+  parsed.options && parsed.options.length > 1
+    ? "category"
+    : parsed.category
+    ? "confirmation"
+    : "amount",
       });
 
       reply = parsed.reply;
     }
+
+    if (parsed.type === "query") {
+  if (parsed.queryType === "monthly_total") {
+    const total = spendMemory.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    reply = `You’ve spent ₹${total} this month.`;
+  }
+
+  else if (parsed.queryType === "breakdown") {
+    const totals: Record<string, number> = {};
+
+    spendMemory.forEach((item) => {
+      totals[item.category] =
+        (totals[item.category] || 0) + item.amount;
+    });
+
+    reply = Object.entries(totals)
+      .map(([cat, amt]) => `${cat}: ₹${amt}`)
+      .join("\n");
+  }
+
+  else if (parsed.queryType === "safe_to_spend") {
+    const spent = spendMemory.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const salary = profileMemory.salary || 0;
+    const safe = salary - spent;
+
+    reply = `You can safely spend around ₹${safe}.`;
+  }
+
+else if (parsed.queryType === "category_total") {
+  const category = parsed.category?.toLowerCase();
+
+  const total = spendMemory
+    .filter(
+      (item) => item.category.toLowerCase() === category
+    )
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  reply = `Your ${parsed.category} spending is ₹${total}.`;
+}
+}
 
     // fallback
     if (parsed.type === "unknown") {
