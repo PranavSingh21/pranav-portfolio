@@ -80,7 +80,8 @@ const categoryTotals = spendMemory.reduce((acc, item) => {
 }, {} as Record<string, number>);
 
 const topCategory =
-  Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
+  (Object.entries(categoryTotals) as [string, number][])
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
 
 const currentBalance =
   (profileMemory.currentBalance || profileMemory.salary || 0) - totalSpend;
@@ -156,7 +157,8 @@ const [pendingEntry, setPendingEntry] = useState<{
   amount?: number;
   category?: string;
   options?: string[];
-  awaiting: "amount" | "category" | "confirmation";
+  intent?: "expense_add" | "income_add" | "savings_add" | "query" | "unknown";
+  awaiting: "amount" | "category" | "confirmation" | "none";
 } | null>(null);
 
 const [spendMemory, setSpendMemory] = useState<any[]>([]);
@@ -192,7 +194,43 @@ useEffect(() => {
 function getBotReply() {
   return "Try logging something like ‘Swiggy 280’ or ask about your spending.";
 }
-function resolvePendingFlow(trimmed: string): boolean {
+function inferCategory(merchant: string) {
+  const lower = merchant.toLowerCase();
+
+  const mapping: Record<string, string> = {
+    swiggy: "Eating Out",
+    zomato: "Eating Out",
+    uber: "Transport",
+    ola: "Transport",
+
+    bucket: "Household",
+    mug: "Household",
+    mat: "Household",
+    utensils: "Household",
+    plate: "Household",
+    spoon: "Household",
+    bottle: "Household",
+    container: "Household",
+    bedsheet: "Household",
+    pillow: "Household",
+
+    colgate: "Personal",
+    cigarette: "Personal",
+    cigg: "Personal",
+
+    facewash: "Personal",
+  };
+
+  for (const key in mapping) {
+    if (lower.includes(key)) {
+      return mapping[key];
+    }
+  }
+
+  return null;
+}
+
+async function resolvePendingFlow(trimmed: string): Promise<boolean> {
   const lower = trimmed.toLowerCase().trim();
 
   if (!pendingEntry) return false;
@@ -210,7 +248,7 @@ function resolvePendingFlow(trimmed: string): boolean {
   // CONFIRMATION FLOW
   // -------------------------
   if (pendingEntry.awaiting === "confirmation") {
-    if (["yes", "y", "ok", "okay"].includes(lower)) {
+    if (["yes", "y", "ok", "okay","sure"].includes(lower)) {
       if (pendingEntry.intent === "savings_add") {
         setProfileMemory((prev) => ({
           ...prev,
@@ -228,20 +266,26 @@ function resolvePendingFlow(trimmed: string): boolean {
 
         pushMessages(`Logged ₹${pendingEntry.amount} as income.`);
       } else {
-        setSpendMemory((prev) => [
-          ...prev,
-          {
-            merchant: pendingEntry.merchant,
-            amount: pendingEntry.amount!,
-            category: pendingEntry.category || "General",
-            date: new Date().toISOString(),
-          },
-        ]);
+  const transaction = {
+    merchant: pendingEntry.merchant || "Unknown",
+    amount: pendingEntry.amount || 0,
+    category: pendingEntry.category || "General",
+    date: new Date().toISOString(),
+  };
 
-        pushMessages(
-          `Logged ₹${pendingEntry.amount} for ${pendingEntry.merchant} under ${pendingEntry.category}.`
-        );
-      }
+  setSpendMemory((prev) => [...prev, transaction]);
+
+  await saveTransactionToDb({
+    type: "expense",
+    merchant: transaction.merchant,
+    amount: transaction.amount,
+    category: transaction.category,
+  });
+
+  pushMessages(
+    `Logged ₹${transaction.amount} for ${transaction.merchant} under ${transaction.category}.`
+  );
+}
 
       setPendingEntry(null);
       return true;
@@ -276,51 +320,115 @@ function resolvePendingFlow(trimmed: string): boolean {
     "savings",
   ];
 
-  if (pendingEntry.awaiting === "category" && allowedCategories.includes(lower)) {
-    const category =
-      lower === "eating out"
-        ? "Eating Out"
-        : lower.charAt(0).toUpperCase() + lower.slice(1);
+if (pendingEntry.awaiting === "category" && allowedCategories.includes(lower)) {
+  const category =
+    lower === "eating out"
+      ? "Eating Out"
+      : lower.charAt(0).toUpperCase() + lower.slice(1);
 
-    if (category === "Savings") {
-      setProfileMemory((prev) => ({
-        ...prev,
-        savings: (prev.savings || 0) + (pendingEntry.amount || 0),
-      }));
+  const transaction = {
+    merchant: pendingEntry.merchant || "Unknown",
+    amount: pendingEntry.amount || 0,
+    category,
+    date: new Date().toISOString(),
+  };
 
-      pushMessages(
-        `Added ₹${pendingEntry.amount} to savings from ${pendingEntry.merchant}.`
-      );
-    } else {
-      setSpendMemory((prev) => [
-        ...prev,
-        {
-          merchant: pendingEntry.merchant,
-          amount: pendingEntry.amount!,
-          category,
-          date: new Date().toISOString(),
-        },
-      ]);
+  if (!transaction.amount || transaction.amount <= 0) {
+    pushMessages(`How much should I log for ${transaction.merchant}?`);
 
-      pushMessages(
-        `Logged ₹${pendingEntry.amount} for ${pendingEntry.merchant} under ${category}.`
-      );
-    }
+    setPendingEntry((prev) =>
+      prev
+        ? {
+            ...prev,
+            awaiting: "amount",
+          }
+        : null
+    );
 
-    setPendingEntry(null);
     return true;
   }
+
+  if (category === "Savings") {
+    setProfileMemory((prev) => ({
+      ...prev,
+      savings: (prev.savings || 0) + transaction.amount,
+    }));
+
+    await saveTransactionToDb({
+      type: "savings",
+      merchant: transaction.merchant,
+      amount: transaction.amount,
+      category: "Savings",
+    });
+
+    pushMessages(`Added ₹${transaction.amount} to Savings.`);
+  } else {
+    setSpendMemory((prev) => [...prev, transaction]);
+
+    await saveTransactionToDb({
+      type: "expense",
+      merchant: transaction.merchant,
+      amount: transaction.amount,
+      category: transaction.category,
+    });
+
+    pushMessages(
+      `Logged ₹${transaction.amount} for ${transaction.merchant} under ${transaction.category}.`
+    );
+  }
+
+  setPendingEntry(null);
+  return true;
+}
 
   return false;
 }
 
-function handleSend(text?: string) {
+async function saveTransactionToDb(transaction: {
+  type: "expense" | "income" | "savings";
+  merchant?: string;
+  amount: number;
+  category: string;
+  note?: string;
+}) {
+  console.log("Saving transaction to DB:", transaction);
+
+  try {
+    const res = await fetch("/api/savvy/transactions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(transaction),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Failed to save transaction to DB:", errorText);
+    } else {
+      const data = await res.json();
+      console.log("Saved transaction:", data);
+    }
+  } catch (error) {
+    console.error("DB save error:", error);
+  }
+}
+
+const extractMerchantFromText = (text: string) => {
+  return text
+    .replace(/[₹,]/g, "")
+    .replace(/\b\d+(\.\d+)?\b/g, "")
+    .replace(/\b(spent|paid|bought|buy|for|on|rs|inr|rupees|log|add)\b/gi, "")
+    .trim();
+};
+
+async function handleSend(text?: string) {
   const trimmed = (text ?? input).trim();
   if (!trimmed) return;
 
   // Phase 1: resolve local conversational state first
   // (yes/no confirmations, category follow-ups, etc.)
-  if (resolvePendingFlow(trimmed)) return;
+ if (await resolvePendingFlow(trimmed)) return;
 
   // Phase 2: normal user turn
   const userMsg: Message = {
@@ -344,7 +452,20 @@ function handleSend(text?: string) {
     });
 
     const parsed = await res.json();
-    let reply = getBotReply(trimmed, spendMemory);
+    const safeParsed = {
+  type: parsed.type || "unknown",
+  queryType: parsed.queryType || "none",
+  amount: Number(parsed.amount || 0),
+  merchant: parsed.merchant || "",
+  category: parsed.category || "General",
+  field: parsed.field || null,
+  value: Number(parsed.value || 0),
+  options: Array.isArray(parsed.options) ? parsed.options : [],
+  reply: parsed.reply || "",
+  intent: parsed.intent || "expense_add",
+  awaiting: parsed.awaiting || "none",
+};
+    let reply = getBotReply();
 
     // reset <category>
     if (lower.startsWith("reset ")) {
@@ -410,56 +531,95 @@ function handleSend(text?: string) {
     }
 
     // profile updates
-    if (parsed.type === "profile_update") {
+    if (safeParsed.type === "profile_update") {
       setProfileMemory((prev) => ({
         ...prev,
-        [parsed.field]:
-          parsed.field === "savings"
-            ? (prev.savings || 0) + parsed.value
-            : parsed.value,
+        [safeParsed.field]:
+          safeParsed.field === "savings"
+            ? (prev.savings || 0) + safeParsed.value
+            : safeParsed.value,
       }));
 
       reply =
-        parsed.field === "savings"
-          ? `Updated savings to ₹${(profileMemory.savings || 0) + parsed.value}.`
-          : `Saved your ${parsed.field} as ₹${parsed.value}.`;
+        safeParsed.field === "savings"
+          ? `Updated savings to ₹${(profileMemory.savings || 0) + safeParsed.value}.`
+          : `Saved your ${safeParsed.field} as ₹${safeParsed.value}.`;
     }
 
-    // direct transaction
-    if (parsed.type === "transaction") {
-      setSpendMemory((prev) => [
-        ...prev,
-        {
-          merchant: parsed.merchant,
-          amount: parsed.amount,
-          category: parsed.category,
-          date: new Date().toISOString(),
-        },
-      ]);
+// direct transaction
+if (safeParsed.type === "transaction") {
+  const transaction = {
+    merchant: safeParsed.merchant || "Unknown",
+    amount: safeParsed.amount,
+    category: safeParsed.category || "General",
+    date: new Date().toISOString(),
+  };
 
-      reply = `Logged ₹${parsed.amount} for ${parsed.merchant} under ${parsed.category}.`;
-    }
+  setSpendMemory((prev) => [...prev, transaction]);
 
-    // clarification / confirmation
-    if (parsed.type === "clarification") {
-      setPendingEntry({
-        merchant: parsed.merchant,
-        amount: parsed.amount,
-        category: parsed.category,
-        options: parsed.options || [],
-        awaiting:
-  parsed.options && parsed.options.length > 1
-    ? "category"
-    : parsed.category
-    ? "confirmation"
-    : "amount",
-      });
+  await saveTransactionToDb({
+    type: "expense",
+    merchant: transaction.merchant,
+    amount: transaction.amount,
+    category: transaction.category,
+  });
 
-      reply = parsed.reply;
-    }
+  reply = `Logged ₹${transaction.amount} for ${transaction.merchant} under ${transaction.category}.`;
+}
 
-    if (parsed.type === "query") {
-  if (parsed.queryType === "monthly_total") {
+// clarification / confirmation
+if (safeParsed.type === "clarification") {
+  const fallbackMerchant = extractMerchantFromText(trimmed);
+
+  const merchant =
+    safeParsed.merchant && safeParsed.merchant.trim()
+      ? safeParsed.merchant.trim()
+      : fallbackMerchant || "Unknown";
+
+  const options = safeParsed.options || [];
+
+  const inferredCategory =
+    safeParsed.category && safeParsed.category !== "General"
+      ? safeParsed.category
+      : inferCategory(merchant) || "";
+
+  const awaiting =
+    safeParsed.awaiting === "confirmation" ||
+    safeParsed.awaiting === "category" ||
+    safeParsed.awaiting === "amount"
+      ? safeParsed.awaiting
+      : options.length > 1
+      ? "category"
+      : inferredCategory
+      ? "confirmation"
+      : options.length === 1
+      ? "confirmation"
+      : "amount";
+
+  const finalCategory =
+    inferredCategory || (options.length === 1 ? options[0] : "");
+
+  setPendingEntry({
+    merchant,
+    amount: safeParsed.amount || 0,
+    category: finalCategory,
+    options,
+    intent: safeParsed.intent || "expense_add",
+    awaiting,
+  });
+
+  if (awaiting === "confirmation") {
+    reply = `Should I log ₹${safeParsed.amount} for ${merchant} under ${finalCategory}?`;
+  } else if (awaiting === "category") {
+    reply = options.length
+      ? `Should I log ₹${safeParsed.amount} for ${merchant} under ${options.join(", ")}?`
+      : `Which category should I use for ${merchant}?`;
+  } else {
+    reply = `How much should I log for ${merchant}?`;
+  }
+}
+    if (safeParsed.type === "query") {
+  if (safeParsed.queryType === "monthly_total") {
     const total = spendMemory.reduce(
       (sum, item) => sum + item.amount,
       0
@@ -468,7 +628,7 @@ function handleSend(text?: string) {
     reply = `You’ve spent ₹${total} this month.`;
   }
 
-  else if (parsed.queryType === "breakdown") {
+  else if (safeParsed.queryType === "breakdown") {
     const totals: Record<string, number> = {};
 
     spendMemory.forEach((item) => {
@@ -481,7 +641,7 @@ function handleSend(text?: string) {
       .join("\n");
   }
 
-  else if (parsed.queryType === "safe_to_spend") {
+  else if (safeParsed.queryType === "safe_to_spend") {
     const spent = spendMemory.reduce(
       (sum, item) => sum + item.amount,
       0
@@ -493,8 +653,8 @@ function handleSend(text?: string) {
     reply = `You can safely spend around ₹${safe}.`;
   }
 
-else if (parsed.queryType === "category_total") {
-  const category = parsed.category?.toLowerCase();
+else if (safeParsed.queryType === "category_total") {
+  const category = safeParsed.category?.toLowerCase();
 
   const total = spendMemory
     .filter(
@@ -502,13 +662,13 @@ else if (parsed.queryType === "category_total") {
     )
     .reduce((sum, item) => sum + item.amount, 0);
 
-  reply = `Your ${parsed.category} spending is ₹${total}.`;
+  reply = `Your ${safeParsed.category} spending is ₹${total}.`;
 }
 }
 
     // fallback
-    if (parsed.type === "unknown") {
-      reply = parsed.reply || "I’m not sure what you mean. Could you provide more details?";
+    if (safeParsed.type === "unknown") {
+      reply = safeParsed.reply || "I’m not sure what you mean. Could you provide more details?";
     }
 
     setMessages((prev) => [
@@ -550,13 +710,13 @@ else if (parsed.queryType === "category_total") {
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className="w-full min-w-0 px-4 sm:px-6 py-6 space-y-4 overflow-x-hidden">
-            {messages.map((msg) =>
-              msg.sender === 'bot' ? (
-                <BotMessage key={msg.id} text={msg.text} />
-              ) : (
-                <UserMessage key={msg.id} text={msg.text} />
-              )
-            )}
+           {messages.map((msg, index) =>
+  msg.sender === "bot" ? (
+    <BotMessage key={`${msg.id}-${index}`} text={msg.text} />
+  ) : (
+    <UserMessage key={`${msg.id}-${index}`} text={msg.text} />
+  )
+)}
             <div ref={chatEndRef} />
           </div>
         </div>
