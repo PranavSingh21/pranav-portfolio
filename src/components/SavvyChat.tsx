@@ -106,11 +106,11 @@ const items = [
 
   return (
     <div
-  className={`flex flex-col ${
-    mobile
-      ? "w-full"
-      : "hidden lg:flex w-72 shrink-0 border-l savvy-border savvy-surface-soft"
-  }`}
+className={`flex flex-col ${
+  mobile
+    ? "w-full"
+    : "w-72 shrink-0 border-l savvy-border savvy-surface-soft hidden lg:flex"
+}`}
 >
       <div className="px-5 pt-6 pb-4">
         <h2 className="text-sm font-semibold savvy-muted tracking-wide">Summary</h2>
@@ -141,6 +141,7 @@ const items = [
 export default function Savvy() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(INITIAL_MESSAGES.length + 1);
 
@@ -687,25 +688,129 @@ else if (safeParsed.queryType === "category_total") {
       <div className="h-full w-full max-w-7xl mx-auto flex">
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0 w-0 border-l savvy-border overflow-x-hidden">
-        {/* Header */}
-        <header className="shrink-0 border-b savvy-border savvy-header backdrop-blur-md">
-            <div className="w-full px-4 sm:px-6 py-4 flex items-center gap-3">
-             <div className="w-9 h-9 flex items-center justify-center overflow-hidden">
-  <img
-    src="/savvy-bot.png"
-    alt="Savvy"
-    className="w-8 h-8 object-contain"
-  />
-</div>
 
-             <div>
-               <h1 className="text-lg font-bold tracking-tight savvy-text leading-none">
-                Savvy
-               </h1>
-             <p className="text-xs savvy-muted mt-0.5">Track money. Spend smarter.</p>
-             </div>
+        {/* Header */}
+<header className="shrink-0 border-b savvy-border savvy-header backdrop-blur-md">
+  <div className="w-full px-4 sm:px-6 py-4 flex items-center justify-between">
+
+    {/* LEFT */}
+    <div className="flex items-center gap-3">
+
+      <div className="w-9 h-9 flex items-center justify-center overflow-hidden">
+        <img
+          src="/savvy-bot.png"
+          alt="Savvy"
+          className="w-8 h-8 object-contain"
+        />
+      </div>
+
+      <div>
+        <h1 className="text-lg font-bold tracking-tight savvy-text leading-none">
+          Savvy
+        </h1>
+
+        <p className="text-xs savvy-muted mt-0.5">
+          Track money. Spend smarter.
+        </p>
+      </div>
+
+    </div>
+
+    {/* RIGHT */}
+    <div className="flex items-center gap-2">
+
+      <div className="relative">
+
+        <button
+          onClick={() => setShowMenu((prev) => !prev)}
+          className="w-9 h-9 rounded-xl border border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 transition flex items-center justify-center text-zinc-300"
+        >
+          ⋮
+        </button>
+
+        {showMenu && (
+          <>
+            {/* backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowMenu(false)}
+            />
+
+            {/* dropdown */}
+            <div className="absolute right-0 top-12 z-50 w-48 overflow-hidden rounded-2xl border border-zinc-700 bg-[#111827] shadow-2xl">
+
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  window.open("/api/savvy/export", "_blank");
+                }}
+                className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
+              >
+                Export CSV
+              </button>
+
+             {typeof window !== "undefined" && window.innerWidth < 1024 && (
+  <button
+    onClick={() => {
+      setShowMenu(false);
+      setShowSnapshot(true);
+    }}
+    className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
+  >
+    View Summary
+  </button>
+)}
+
+              <div className="border-t border-zinc-700" />
+
+              
+<button
+  onClick={async () => {
+    const confirmed = window.confirm(
+      "Delete all transactions and reset Savvy?"
+    );
+
+    if (!confirmed) return;
+
+    setShowMenu(false);
+
+    try {
+      await fetch("/api/savvy/reset", {
+        method: "POST",
+      });
+
+      setMessages([
+        {
+          id: nextId.current++,
+          sender: "bot",
+          text: "Savvy has been reset. Start fresh — Log expenses, track spending, and ask where your money went in plain English. Try ‘Salary 120000’ or ‘Swiggy 280’.",
+        },
+      ]);
+
+      setSpendMemory([]);
+      setProfileMemory({});
+      setPendingEntry(null);
+
+    } catch (error) {
+      console.error("Reset failed:", error);
+    }
+  }}
+  className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-zinc-800 transition"
+>
+  Reset Data
+</button>
+
             </div>
-        </header>
+          </>
+        )}
+
+      </div>
+
+    </div>
+
+  </div>
+</header>
+
 
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
@@ -722,7 +827,7 @@ else if (safeParsed.queryType === "category_total") {
         </div>
         <button
          onClick={() => setShowSnapshot(true)}
-         className="lg:hidden fixed bottom-36 right-4 z-30 savvy-surface border savvy-border rounded-full px-3.5 py-2 text-xs font-medium savvy-text shadow-lg"
+          className="hidden"
         >
          Summary
         </button>
@@ -768,19 +873,34 @@ else if (safeParsed.queryType === "category_total") {
         </div>
       </div>
 
-      {/* Summary card - desktop only */}
-      {showSnapshot && (
-       <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setShowSnapshot(false)}>
-        <div
-         className="absolute bottom-0 left-0 right-0 rounded-t-3xl savvy-surface p-4 max-h-[75vh] overflow-y-auto"
-         onClick={(e) => e.stopPropagation()}
-        >
-        <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-4" />
-        <SummaryCard profileMemory={profileMemory} spendMemory={spendMemory} mobile />
-        </div>
-      </div>
-      )}
-      <SummaryCard profileMemory={profileMemory} spendMemory={spendMemory} />
+{/* Mobile bottom-sheet summary */}
+{showSnapshot && (
+  <div
+    className="lg:hidden fixed inset-0 z-40 bg-black/50"
+    onClick={() => setShowSnapshot(false)}
+  >
+    <div
+      className="absolute bottom-0 left-0 right-0 rounded-t-3xl savvy-surface p-4 max-h-[75vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-4" />
+
+      <SummaryCard
+        profileMemory={profileMemory}
+        spendMemory={spendMemory}
+        mobile
+      />
+    </div>
+  </div>
+)}
+
+{/* Desktop summary */}
+<div className="hidden lg:flex">
+  <SummaryCard
+    profileMemory={profileMemory}
+    spendMemory={spendMemory}
+  />
+</div>
     </div>
     </div>
   );
