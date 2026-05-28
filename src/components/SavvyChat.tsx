@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Wallet, TrendingDown, Tag, ShieldCheck, Send, PiggyBank, Sparkles } from "lucide-react";
+import { createPortal } from "react-dom";
 
 interface Message {
   id: number;
@@ -38,7 +39,7 @@ function BotMessage({ text }: { text: string }) {
          <Sparkles className="w-3.5 h-3.5 text-white" />
       </div>
 
-      <div className="min-w-0 max-w-[calc(100%-2.5rem)] savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed break-words">
+      <div className="relative z-0 min-w-0 max-w-[calc(100%-2.5rem)] savvy-surface savvy-border text-slate-200 rounded-2xl rounded-bl-md px-4 py-3 text-[15px] leading-relaxed break-words">
         {parts.map((part, i) =>
           part.startsWith('**') && part.endsWith('**') ? (
             <span key={i} className="font-semibold savvy-text">
@@ -143,6 +144,7 @@ export default function Savvy() {
   const [input, setInput] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const nextId = useRef(INITIAL_MESSAGES.length + 1);
 
   const [profileMemory, setProfileMemory] = useState({
@@ -722,87 +724,13 @@ else if (safeParsed.queryType === "category_total") {
       <div className="relative">
 
         <button
+         ref={menuButtonRef}
           onClick={() => setShowMenu((prev) => !prev)}
           className="w-9 h-9 rounded-xl border border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 transition flex items-center justify-center text-zinc-300"
         >
           ⋮
         </button>
-
-        {showMenu && (
-          <>
-            {/* backdrop */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setShowMenu(false)}
-            />
-
-            {/* dropdown */}
-            <div className="absolute right-0 top-12 z-50 w-48 overflow-hidden rounded-2xl border border-zinc-700 bg-[#111827] shadow-2xl">
-
-              <button
-                onClick={() => {
-                  setShowMenu(false);
-                  window.open("/api/savvy/export", "_blank");
-                }}
-                className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
-              >
-                Export CSV
-              </button>
-
-             {typeof window !== "undefined" && window.innerWidth < 1024 && (
-  <button
-    onClick={() => {
-      setShowMenu(false);
-      setShowSnapshot(true);
-    }}
-    className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
-  >
-    View Summary
-  </button>
-)}
-
-              <div className="border-t border-zinc-700" />
-
-              
-<button
-  onClick={async () => {
-    const confirmed = window.confirm(
-      "Delete all transactions and reset Savvy?"
-    );
-
-    if (!confirmed) return;
-
-    setShowMenu(false);
-
-    try {
-      await fetch("/api/savvy/reset", {
-        method: "POST",
-      });
-
-      setMessages([
-        {
-          id: nextId.current++,
-          sender: "bot",
-          text: "Savvy has been reset. Start fresh — Log expenses, track spending, and ask where your money went in plain English. Try ‘Salary 120000’ or ‘Swiggy 280’.",
-        },
-      ]);
-
-      setSpendMemory([]);
-      setProfileMemory({});
-      setPendingEntry(null);
-
-    } catch (error) {
-      console.error("Reset failed:", error);
-    }
-  }}
-  className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-zinc-800 transition"
->
-  Reset Data
-</button>
-
-            </div>
-          </>
-        )}
+         
 
       </div>
 
@@ -811,6 +739,92 @@ else if (safeParsed.queryType === "category_total") {
   </div>
 </header>
 
+{typeof window !== "undefined" &&
+  showMenu &&
+  createPortal(
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-[99998]"
+        onClick={() => setShowMenu(false)}
+      />
+
+      {/* Menu */}
+      <div className="fixed top-[72px] right-3 z-[99999] w-52 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.68)] backdrop-blur-2xl shadow-[0_12px_40px_rgba(2,6,23,0.45)] before:absolute before:inset-0 before:bg-white/[0.03]"style={{
+    top:
+      (menuButtonRef.current?.getBoundingClientRect().bottom ?? 0) + 10,
+
+    left:
+      (menuButtonRef.current?.getBoundingClientRect().right ?? 0) - 208,
+  }}
+>
+
+        <button
+         
+          onClick={() => {
+            setShowMenu(false);
+            window.open("/api/savvy/export", "_blank");
+          }}
+          className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
+        >
+          Export CSV
+        </button>
+
+        {window.innerWidth < 1024 && (
+          <button
+            onClick={() => {
+              setShowMenu(false);
+              setShowSnapshot(true);
+            }}
+            className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
+          >
+            View Summary
+          </button>
+        )}
+
+        <div className="border-t border-zinc-700" />
+
+        <button
+          onClick={async () => {
+            const confirmed = window.confirm(
+              "Delete all transactions and reset Savvy?"
+            );
+
+            if (!confirmed) return;
+
+            setShowMenu(false);
+
+            try {
+              await fetch("/api/savvy/reset", {
+                method: "POST",
+              });
+
+              setMessages([
+                {
+                  id: nextId.current++,
+                  sender: "bot",
+                  text:
+                    "Savvy has been reset. Start fresh — Log expenses, track spending, and ask where your money went in plain English. Try ‘Salary 120000’ or ‘Swiggy 280’.",
+                },
+              ]);
+
+              setSpendMemory([]);
+              setProfileMemory({});
+              setPendingEntry(null);
+
+            } catch (error) {
+              console.error("Reset failed:", error);
+            }
+          }}
+          className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-zinc-800 transition"
+        >
+          Reset Data
+        </button>
+
+      </div>
+    </>,
+    document.body
+  )}
 
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">

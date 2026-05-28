@@ -2,43 +2,112 @@
 @import "tailwindcss";
 
 :root {
-  --savvy-header: #111c30;
-  --savvy-bg: #0f172a;
-  --savvy-surface: #1e293b;
-  --savvy-surface-soft: #111827;
-  --savvy-border: #334155;
+  --savvy-header: rgba(11, 18, 32, 0.72);
+
+  --savvy-bg:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(6, 182, 212, 0.16), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.14), transparent 30%),
+    linear-gradient(135deg, #071120 0%, #0b1730 45%, #0f1d3a 100%);
+
+  --savvy-surface: rgba(15, 23, 42, 0.58);
+
+  --savvy-surface-soft: rgba(15, 23, 42, 0.38);
+
+  --savvy-border: rgba(255,255,255,0.08);
+
   --savvy-text: #f8fafc;
+
   --savvy-muted: #94a3b8;
-  --savvy-accent: #059669;
+
+  --savvy-accent: linear-gradient(
+    135deg,
+    #8b5cf6 0%,
+    #7c3aed 45%,
+    #06b6d4 100%
+  );
+
   --savvy-accent-hover: #047857;
 }
 
 body {
   font-family: 'Outfit', sans-serif;
-  color: #0f172a;
+  color: var(--savvy-text);
+  background: #071120;
+  overflow: hidden;
 }
 
-.savvy-header {
-  background: var(--savvy-header);
-}
-
+/* Main app shell */
 .savvy-shell {
   background: var(--savvy-bg);
   color: var(--savvy-text);
+  position: relative;
+  
 }
 
+/* Ambient glow layer */
+.savvy-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+    radial-gradient(circle at 20% 20%, rgba(139,92,246,0.12), transparent 25%),
+    radial-gradient(circle at 80% 0%, rgba(6,182,212,0.12), transparent 22%);
+
+  filter: blur(40px);
+}
+
+/* Header */
+.savvy-header {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 15, 30, 0.82) 0%,
+      rgba(10, 15, 30, 0.58) 100%
+    );
+
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+
+  box-shadow:
+    0 8px 32px rgba(2,6,23,0.22);
+
+  position: relative;
+}
+
+/* Glass cards */
 .savvy-surface {
   background: var(--savvy-surface);
+
+
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  box-shadow:
+    0 8px 32px rgba(2, 6, 23, 0.22),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
+/* Softer panels */
 .savvy-surface-soft {
   background: var(--savvy-surface-soft);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border-left: 1px solid rgba(255,255,255,0.05);
 }
 
+/* Borders */
 .savvy-border {
   border-color: var(--savvy-border);
 }
 
+/* Typography */
 .savvy-text {
   color: var(--savvy-text);
 }
@@ -47,15 +116,34 @@ body {
   color: var(--savvy-muted);
 }
 
+/* Accent buttons */
 .savvy-accent {
   background: var(--savvy-accent);
   color: white;
+
+  box-shadow:
+    0 8px 24px rgba(124,58,237,0.32);
+
+  transition: all 0.2s ease;
 }
 
 .savvy-accent:hover {
-  background: var(--savvy-accent-hover);
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 12px 32px rgba(124,58,237,0.4);
 }
-/* Subtle dark scrollbar */
+
+/* Soft accent containers */
+.savvy-accent-soft {
+  background: rgba(124, 58, 237, 0.12);
+
+  border: 1px solid rgba(124, 58, 237, 0.18);
+
+  backdrop-filter: blur(12px);
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -65,18 +153,56 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgba(148, 163, 184, 0.22);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(148, 163, 184, 0.38);
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.28);
+/* Floating glass utility */
+.savvy-glass {
+  background: rgba(15, 23, 42, 0.52);
+
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  box-shadow:
+    0 8px 32px rgba(2, 6, 23, 0.18);
 }
-.savvy-accent-soft {
-  background: rgba(5, 150, 105, 0.12);
-  border: 1px solid rgba(5, 150, 105, 0.2);
+
+/* Glow utility */
+.savvy-glow {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 16px 40px rgba(124,58,237,0.18);
+}
+.savvy-glass {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.savvy-header::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle at left,
+      rgba(124,58,237,0.10),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at right,
+      rgba(6,182,212,0.08),
+      transparent 30%
+    );
+
+  opacity: 0.9;
 }

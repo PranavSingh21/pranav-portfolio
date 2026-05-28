@@ -1,0 +1,31 @@
+[33m207a745[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add Supabase persistence, CSV export, reset flow, and responsive summary menu
+[33mbac6b05[m Add Supabase transaction persistence for Savvy
+[33mabc0154[m Improve Savvy conversational clarification and query handling
+[33mf7df31e[m Update README.md
+[33m9046ab2[m Improve Savvy clarification flow and constrain AI category mapping
+[33mb510f8a[m Create decision-log.md
+[33maca0e48[m Create roadmap-v2.md
+[33m3be4617[m Create failure-log.md
+[33m4b0769a[m Create system-flow.md
+[33m8f5f760[m Create product-brief.md
+[33m8c87182[m Enable Astro SSR for Savvy API routes
+[33ma5ead3f[m Update README.md
+[33m06ba4d3[m Add AI parsing and smarter Savvy transaction handling
+[33m1aa027f[m Add Savvy descriptor in live projects menu
+[33m5567d79[m Prevent iOS input zoom in Savvy chat
+[33m1eea915[m Clamp Savvy mobile chat width
+[33m37808ab[m Fix Savvy mobile chip rail overflow
+[33m4b08611[m Fix Savvy mobile horizontal overflow
+[33m118c5e3[m Refine Savvy mobile summary UI
+[33m3a44f83[m Add mobile snapshot bottom sheet
+[33m0afb68c[m Updated color palette
+[33m2ae60dd[m Polish Savvy mobile app shell
+[33m6e3ce99[m Fix mobile Live Projects menu
+[33maccef63[m update Live Projects mobile CTA
+[33m4e5c53e[m Add Live Projects dropdown with Savvy link
+[33m5f15492[m Merge branch 'feature/Savvy'
+[33m3731d17[m[33m ([m[1;31morigin/feature/Savvy[m[33m, [m[1;32mfeature/Savvy[m[33m)[m Add Savvy personal finance assistant MVP
+[33m70decb3[m Delete CNAME
+[33mcd77764[m Create CNAME
+[33mf00bacc[m Update README.md
+[33m7e6e19c[m Initial portfolio setup
