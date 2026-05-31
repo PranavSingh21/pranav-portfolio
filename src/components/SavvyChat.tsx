@@ -897,7 +897,7 @@ else if (safeParsed.queryType === "category_total") {
     onClick={() => setShowSnapshot(false)}
   >
     <div
-      className="absolute bottom-0 left-0 right-0 rounded-t-3xl savvy-surface p-4 max-h-[75vh] overflow-y-auto"
+  className="absolute bottom-0 left-0 right-0 rounded-t-3xl p-4 max-h-[75vh] overflow-y-auto bg-[rgba(15,23,42,0.96)] backdrop-blur-xl border-t border-white/10"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="w-10 h-1 rounded-full bg-slate-600 mx-auto mb-4" />
