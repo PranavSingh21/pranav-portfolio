@@ -574,11 +574,14 @@ if (safeParsed.type === "transaction") {
 if (safeParsed.type === "clarification") {
   const fallbackMerchant = extractMerchantFromText(trimmed);
 
-  const merchant =
-    safeParsed.merchant && safeParsed.merchant.trim()
-      ? safeParsed.merchant.trim()
-      : fallbackMerchant || "Unknown";
+  const parsedMerchant = safeParsed.merchant?.trim();
 
+  const merchant =
+    parsedMerchant &&
+    parsedMerchant.toLowerCase() !== "unknown"
+      ? parsedMerchant
+      : fallbackMerchant || "Unknown";
+ 
   const options = safeParsed.options || [];
 
   const inferredCategory =
@@ -750,7 +753,7 @@ else if (safeParsed.queryType === "category_total") {
       />
 
       {/* Menu */}
-      <div className="fixed top-[72px] right-3 z-[99999] w-52 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.68)] backdrop-blur-2xl shadow-[0_12px_40px_rgba(2,6,23,0.45)] before:absolute before:inset-0 before:bg-white/[0.03]"style={{
+      <div className="fixed top-[72px] right-3 z-[99999] w-52 max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.68)] backdrop-blur-2xl shadow-[0_12px_40px_rgba(2,6,23,0.45)]"style={{
     top:
       (menuButtonRef.current?.getBoundingClientRect().bottom ?? 0) + 10,
 
