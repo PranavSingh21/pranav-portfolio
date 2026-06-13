@@ -516,6 +516,7 @@ async function handleSend(text?: string) {
     });
 
     const parsed = await res.json();
+    
     const safeParsed = {
   type: parsed.type || "unknown",
   queryType: parsed.queryType || "none",
@@ -529,6 +530,7 @@ async function handleSend(text?: string) {
   intent: parsed.intent || "expense_add",
   awaiting: parsed.awaiting || "none",
 };
+console.log("PARSED RESPONSE", safeParsed);
 let messageOptions: string[] | undefined = undefined;
     let reply = getBotReply();
 
@@ -599,7 +601,11 @@ console.log("FINAL MESSAGE:", {
     }
 
     // profile updates
-    if (safeParsed.type === "profile_update") {
+    if (
+  safeParsed.type === "profile_update" &&
+  safeParsed.field &&
+  safeParsed.value > 0
+) { console.log("PARSED RESPONSE", safeParsed);
       setProfileMemory((prev) => ({
         ...prev,
         [safeParsed.field]:

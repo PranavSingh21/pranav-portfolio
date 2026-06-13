@@ -860,86 +860,24 @@ The hardest AI product challenge was not model intelligence. It was deciding whe
 8. Future recommendations should align with the hybrid AI + structured UX philosophy established during development.
 
 
-## Milestone: Hybrid Conversational Logging (June 2026)
+## Milestone: Hybrid Conversational Logging
 
-### Problem
-
-Savvy originally relied on free-text responses during clarification flows.
-
-Examples:
-
-* User had to type category names manually.
-* User had to type "Yes" or "No" for confirmations.
-* Logging friction increased when AI confidence was low.
-
-### Product Decision
-
-Maintain the chat-first experience while introducing contextual action chips.
-
-Instead of forcing users to type predictable responses, Savvy now presents tappable choices.
-
-### Implemented
-
-#### Category Chips
-
-Examples:
-
-potato 50
-
-↓
-
-Which category should I use for potato?
-
-[Groceries] [Household]
-
-#### Confirmation Chips
-
-Examples:
-
-sutta 50
-
-↓
-
-Should I log ₹50 for sutta under Personal?
-
-[Yes] [No]
-
-### Technical Approach
-
-* Extended Message interface with optional options field.
-* Added chip rendering inside BotMessage component.
-* Reused existing pendingEntry and resolvePendingFlow architecture.
-* Chip clicks call handleSend(option).
-* No backend API changes required.
+### Features Added
+- Category selection chips
+- Yes/No confirmation chips
+- Interactive clarification flows
 
 ### Bugs Fixed
+- Unknown merchant issue
+- Null category issue
+- Invalid profile update issue ("Saved your null as ₹0")
 
-#### Unknown Merchant Bug
+### Product Learnings
+- Users enter descriptions, not just merchants
+- Chat UX benefits from guided actions
+- AI confidence should determine when chips appear
 
-Issue:
-Transactions sometimes saved with merchant = Unknown.
-
-Fix:
-Fallback merchant extraction now runs before saving transactions.
-
-#### Null Category Bug
-
-Issue:
-Clarification flows occasionally displayed "under null".
-
-Fix:
-Default category fallback added.
-
-#### Clarification UX
-
-Issue:
-Users manually typed category names.
-
-Fix:
-Category chips added.
-
-### Product Learning
-
-Users should never be required to type information when the system already knows the available choices.
-
-The hybrid chat + action model preserves conversational UX while reducing friction.
+### New Edge Cases Discovered
+- Portfolio website charges
+- LinkedIn Premium subscription
+- Business/service expenses vs merchant expenses
