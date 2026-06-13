@@ -3,7 +3,6 @@ import { supabaseServer } from "../../../lib/supabaseServer";
 
 export const prerender = false;
 
-const DEMO_USER_ID = "demo-user";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -14,6 +13,7 @@ export const POST: APIRoute = async ({ request }) => {
     const amount = Number(body?.amount || 0);
     const category = body?.category || "General";
     const note = body?.note || "";
+    const userId = body?.userId;
 
     if (!type || !["expense", "income", "savings"].includes(type)) {
       return new Response(
@@ -28,11 +28,16 @@ export const POST: APIRoute = async ({ request }) => {
         { status: 400 }
       );
     }
-
+if (!userId) {
+  return new Response(
+    JSON.stringify({ error: "User not authenticated" }),
+    { status: 401 }
+  );
+}
     const { data, error } = await supabaseServer
       .from("savvy_transactions")
       .insert({
-        user_id: DEMO_USER_ID,
+        user_id: userId,
         type,
         merchant,
         amount,

@@ -1,15 +1,18 @@
 import type { APIRoute } from "astro";
 import { supabaseServer } from "../../../lib/supabaseServer";
 
-const DEMO_USER_ID = "demo-user";
 
 
-export const GET: APIRoute = async () => {
+
+export const GET: APIRoute = async ({ request }) => {
   try {
+    const userId =
+  new URL(request.url).searchParams.get("userId");
+  
     const { data, error } = await supabaseServer
       .from("savvy_transactions")
       .select("*")
-      .eq("user_id", DEMO_USER_ID)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -18,6 +21,12 @@ export const GET: APIRoute = async () => {
         { status: 500 }
       );
     }
+    if (!userId) {
+  return new Response(
+    JSON.stringify({ error: "User not authenticated" }),
+    { status: 401 }
+  );
+}
 
 const headers = [
   "Date",

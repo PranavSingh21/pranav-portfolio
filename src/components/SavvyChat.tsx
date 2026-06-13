@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Wallet, TrendingDown, Tag, ShieldCheck, Send, PiggyBank, Sparkles } from "lucide-react";
 import { createPortal } from "react-dom";
+import { supabase } from "../lib/supabase";
 
 interface Message {
   id: number;
-  sender: 'user' | 'bot';
+  sender: "user" | "bot";
   text: string;
+
+  options?: string[];
+  actionType?: "category_selection" | "confirmation";
 }
 
 const QUICK_ACTIONS = [
@@ -30,7 +34,15 @@ const SUMMARY = {
   safeToSpend: '$1,340.00',
 };
 
-function BotMessage({ text }: { text: string }) {
+function BotMessage({
+  text,
+  options,
+  onOptionClick,
+}: {
+  text: string;
+  options?: string[];
+  onOptionClick?: (option: string) => void;
+}) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
 
   return (
@@ -49,6 +61,19 @@ function BotMessage({ text }: { text: string }) {
             <span key={i}>{part}</span>
           )
         )}
+        {options && options.length > 0 && (
+  <div className="flex flex-wrap gap-2 mt-3">
+    {options.map((option) => (
+      <button
+        key={option}
+        onClick={() => onOptionClick?.(option)}
+        className="px-3 py-1.5 rounded-full text-sm bg-white/10 hover:bg-white/20 transition"
+      >
+        {option}
+      </button>
+    ))}
+  </div>
+)}
       </div>
     </div>
   );
@@ -166,6 +191,7 @@ const [pendingEntry, setPendingEntry] = useState<{
 
 const [spendMemory, setSpendMemory] = useState<any[]>([]);
 const [showSnapshot, setShowSnapshot] = useState(false);
+const [user, setUser] = useState<any>(null);
 
 useEffect(() => {
   chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -193,6 +219,35 @@ useEffect(() => {
   localStorage.setItem("savvy_messages", JSON.stringify(messages));
 }, [messages]);
 
+useEffect(() => {
+  const loadUser = async () => {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    console.log("USER", user);
+    console.log("ERROR", error);
+
+    setUser(user);
+  };
+
+  loadUser();
+}, []);
+
+const signInWithGoogle = async () => {
+  console.log("LOGIN CLICKED");
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/savvy`,
+    },
+  });
+
+  console.log("AUTH RESPONSE", data);
+  console.log("AUTH ERROR", error);
+};
 
 function getBotReply() {
   return "Try logging something like ‘Swiggy 280’ or ask about your spending.";
@@ -269,6 +324,7 @@ async function resolvePendingFlow(trimmed: string): Promise<boolean> {
 
         pushMessages(`Logged ₹${pendingEntry.amount} as income.`);
       } else {
+        
   const transaction = {
     merchant: pendingEntry.merchant || "Unknown",
     amount: pendingEntry.amount || 0,
@@ -402,7 +458,10 @@ async function saveTransactionToDb(transaction: {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(transaction),
+      body: JSON.stringify({
+  ...transaction,
+  userId: user?.id,
+}),
     });
 
     if (!res.ok) {
@@ -441,7 +500,9 @@ async function handleSend(text?: string) {
   };
 
   setMessages((prev) => [...prev, userMsg]);
+  if (!text) {
   setInput("");
+}
 
   setTimeout(async () => {
     const lower = trimmed.toLowerCase();
@@ -468,6 +529,7 @@ async function handleSend(text?: string) {
   intent: parsed.intent || "expense_add",
   awaiting: parsed.awaiting || "none",
 };
+let messageOptions: string[] | undefined = undefined;
     let reply = getBotReply();
 
     // reset <category>
@@ -492,7 +554,10 @@ async function handleSend(text?: string) {
 
         reply = `Cleared ${target} transactions.`;
       }
-
+console.log("FINAL MESSAGE:", {
+  reply,
+  messageOptions,
+});
       setMessages((prev) => [
         ...prev,
         {
@@ -551,8 +616,15 @@ async function handleSend(text?: string) {
 
 // direct transaction
 if (safeParsed.type === "transaction") {
-  const transaction = {
-    merchant: safeParsed.merchant || "Unknown",
+ const fallbackMerchant =
+  extractMerchantFromText(trimmed);
+
+const transaction = {
+  merchant:
+    safeParsed.merchant &&
+    safeParsed.merchant !== "Unknown"
+      ? safeParsed.merchant
+      : fallbackMerchant || "Unknown",
     amount: safeParsed.amount,
     category: safeParsed.category || "General",
     date: new Date().toISOString(),
@@ -583,6 +655,7 @@ if (safeParsed.type === "clarification") {
       : fallbackMerchant || "Unknown";
  
   const options = safeParsed.options || [];
+ 
 
   const inferredCategory =
     safeParsed.category && safeParsed.category !== "General"
@@ -601,9 +674,19 @@ if (safeParsed.type === "clarification") {
       : options.length === 1
       ? "confirmation"
       : "amount";
+       if (awaiting === "category") {
+  messageOptions = options;
+}
+
+if (awaiting === "confirmation") {
+  messageOptions = ["Yes", "No"];
+}
 
   const finalCategory =
-    inferredCategory || (options.length === 1 ? options[0] : "");
+  inferredCategory ||
+  (options.length === 1
+    ? options[0]
+    : "General");
 
   setPendingEntry({
     merchant,
@@ -617,8 +700,8 @@ if (safeParsed.type === "clarification") {
   if (awaiting === "confirmation") {
     reply = `Should I log ₹${safeParsed.amount} for ${merchant} under ${finalCategory}?`;
   } else if (awaiting === "category") {
-    reply = options.length
-      ? `Should I log ₹${safeParsed.amount} for ${merchant} under ${options.join(", ")}?`
+   reply = options.length
+  ? `Which category should I use for ${merchant}?`
       : `Which category should I use for ${merchant}?`;
   } else {
     reply = `How much should I log for ${merchant}?`;
@@ -678,12 +761,14 @@ else if (safeParsed.queryType === "category_total") {
     }
 
     setMessages((prev) => [
-      ...prev,
-      {
-        id: nextId.current++,
-        sender: "bot",
-        text: reply,
-      },
+  ...prev,
+  {
+    id: nextId.current++,
+    sender: "bot",
+    text: reply,
+
+    options: messageOptions,
+  },
     ]);
   }, 800);
 }
@@ -722,22 +807,34 @@ else if (safeParsed.queryType === "category_total") {
     </div>
 
     {/* RIGHT */}
-    <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
 
-      <div className="relative">
+  {!user ? (
+    <button
+      onClick={signInWithGoogle}
+      className="px-3 py-2 rounded-xl border border-zinc-700 bg-zinc-900/80 text-sm"
+    >
+      Login
+    </button>
+  ) : (
+    <span className="text-xs savvy-muted max-w-[180px] truncate">
+      {user.email}
+    </span>
+  )}
 
-        <button
-         ref={menuButtonRef}
-          onClick={() => setShowMenu((prev) => !prev)}
-          className="w-9 h-9 rounded-xl border border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 transition flex items-center justify-center text-zinc-300"
-        >
-          ⋮
-        </button>
-         
+  <div className="relative">
 
-      </div>
+    <button
+      ref={menuButtonRef}
+      onClick={() => setShowMenu((prev) => !prev)}
+      className="w-9 h-9 rounded-xl border border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 transition flex items-center justify-center text-zinc-300"
+    >
+      ⋮
+    </button>
 
-    </div>
+  </div>
+
+</div>
 
   </div>
 </header>
@@ -766,7 +863,10 @@ else if (safeParsed.queryType === "category_total") {
          
           onClick={() => {
             setShowMenu(false);
-            window.open("/api/savvy/export", "_blank");
+            window.open(
+  `/api/savvy/export?userId=${user?.id}`,
+  "_blank"
+);
           }}
           className="w-full px-4 py-3 text-left text-sm hover:bg-zinc-800 transition"
         >
@@ -798,9 +898,15 @@ else if (safeParsed.queryType === "category_total") {
             setShowMenu(false);
 
             try {
-              await fetch("/api/savvy/reset", {
-                method: "POST",
-              });
+             await fetch("/api/savvy/reset", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    userId: user?.id,
+  }),
+});
 
               setMessages([
                 {
@@ -834,7 +940,15 @@ else if (safeParsed.queryType === "category_total") {
           <div className="w-full min-w-0 px-4 sm:px-6 py-6 space-y-4 overflow-x-hidden">
            {messages.map((msg, index) =>
   msg.sender === "bot" ? (
-    <BotMessage key={`${msg.id}-${index}`} text={msg.text} />
+<BotMessage
+  key={`${msg.id}-${index}`}
+  text={msg.text}
+  options={msg.options}
+  onOptionClick={(option) => {
+    console.log("CHIP CLICKED:", option);
+    handleSend(option);
+  }}
+/>
   ) : (
     <UserMessage key={`${msg.id}-${index}`} text={msg.text} />
   )
